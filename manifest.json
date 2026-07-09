@@ -1,0 +1,16 @@
+{
+  "name": "Il mio piano 16:8",
+  "short_name": "Piano 16:8",
+  "description": "Diario del piano nutrizionale con limiti settimanali e misurazioni",
+  "lang": "it",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F3F6EF",
+  "theme_color": "#24523A",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

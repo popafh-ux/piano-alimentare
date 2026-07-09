@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#24523A">
+<title>Il mio piano 16:8</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F6EF; --card:#FFFFFF; --ink:#22301F; --muted:#68785F;
+  --green:#2F6B45; --green-deep:#24523A; --green-soft:#E6F0DE; --leaf:#8FB55C;
+  --amber:#A96A12; --amber-soft:#FBF0DA;
+  --red:#A83A28; --red-soft:#F8E7E1;
+  --line:#DCE4D3; --radius:14px;
+  --display:"Fraunces", Georgia, serif;
+  --body:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  font-family:var(--body); background:var(--paper); color:var(--ink);
+  font-size:16px; line-height:1.45; padding-bottom:76px;
+}
+button{font-family:inherit;}
+:focus-visible{outline:3px solid var(--leaf); outline-offset:2px; border-radius:6px;}
+
+/* ---------- header ---------- */
+header{
+  background:var(--green-deep); color:#F4F8EE; padding:18px 16px 14px;
+}
+header h1{font-family:var(--display); font-weight:700; font-size:1.5rem; letter-spacing:.2px;}
+header .sub{font-size:.8rem; opacity:.85; margin-top:2px;}
+.status-pill{
+  display:inline-flex; align-items:center; gap:8px; margin-top:12px;
+  background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25);
+  padding:7px 12px; border-radius:999px; font-size:.85rem; font-weight:600;
+}
+.status-pill .dot{width:9px; height:9px; border-radius:50%; background:var(--leaf); flex:none;}
+.status-pill.fasting .dot{background:#E8C15A;}
+
+/* ---------- timeline (signature) ---------- */
+.timeline-wrap{background:var(--green-deep); padding:0 16px 18px;}
+.timeline{
+  position:relative; height:26px; border-radius:8px; overflow:hidden;
+  background:#1B3D2C; box-shadow:inset 0 1px 3px rgba(0,0,0,.35);
+}
+.timeline .seg{position:absolute; top:0; bottom:0;}
+.seg-fast{background:repeating-linear-gradient(135deg,#2A4A38 0 6px,#264433 6px 12px);}
+.seg-window{background:#3E7A52;}
+.seg-meal{background:#8FB55C;}
+.timeline .now{
+  position:absolute; top:-3px; bottom:-3px; width:3px; background:#FFE9A8;
+  border-radius:2px; box-shadow:0 0 6px rgba(255,233,168,.9);
+}
+.timeline-labels{
+  display:flex; justify-content:space-between; font-size:.68rem; margin-top:5px;
+  color:rgba(244,248,238,.75); font-variant-numeric:tabular-nums;
+}
+.timeline-legend{display:flex; gap:14px; margin-top:7px; font-size:.7rem; color:rgba(244,248,238,.85); flex-wrap:wrap;}
+.timeline-legend span{display:inline-flex; align-items:center; gap:5px;}
+.timeline-legend i{width:10px; height:10px; border-radius:3px; display:inline-block;}
+
+/* ---------- layout ---------- */
+main{max-width:640px; margin:0 auto; padding:16px;}
+.tab{display:none;}
+.tab.active{display:block;}
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:14px 16px; margin-bottom:14px;
+}
+h2{font-family:var(--display); font-size:1.15rem; font-weight:700; color:var(--green-deep); margin-bottom:10px;}
+h3{font-size:.95rem; margin-bottom:6px;}
+.eyebrow{
+  font-size:.68rem; text-transform:uppercase; letter-spacing:.09em;
+  color:var(--muted); font-weight:700; margin-bottom:4px;
+}
+.muted{color:var(--muted); font-size:.85rem;}
+.banner{
+  background:var(--green-soft); border:1px solid var(--line); border-radius:var(--radius);
+  padding:12px 14px; margin-bottom:14px; font-size:.88rem;
+}
+.banner.warn{background:var(--amber-soft); border-color:#EAD8B4;}
+
+/* ---------- forms ---------- */
+input, select, textarea{
+  font-family:inherit; font-size:1rem; color:var(--ink);
+  border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+  background:#FDFDFB; width:100%;
+}
+label{font-size:.78rem; font-weight:600; color:var(--muted); display:block; margin-bottom:4px;}
+.form-row{display:flex; gap:10px; margin-bottom:10px;}
+.form-row > div{flex:1;}
+.form-row > div.narrow{flex:0 0 110px;}
+.btn{
+  border:none; border-radius:10px; padding:11px 16px; font-size:.95rem; font-weight:600;
+  cursor:pointer; background:var(--green); color:#fff;
+}
+.btn:active{transform:translateY(1px);}
+.btn.secondary{background:var(--green-soft); color:var(--green-deep);}
+.btn.small{padding:6px 12px; font-size:.82rem; border-radius:8px;}
+.btn.danger-ghost{background:transparent; color:var(--red); padding:6px 8px;}
+.btn:disabled{opacity:.45; cursor:not-allowed;}
+.btn-full{width:100%;}
+
+/* ---------- diario ---------- */
+.meal-plan-line{display:flex; gap:8px; padding:7px 0; border-top:1px dashed var(--line); font-size:.87rem;}
+.meal-plan-line:first-of-type{border-top:none;}
+.meal-plan-line b{flex:0 0 74px; color:var(--green-deep);}
+.entry{
+  display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-top:1px solid var(--line);
+}
+.entry:first-child{border-top:none;}
+.entry .tag{
+  flex:none; font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  background:var(--green-soft); color:var(--green-deep); padding:3px 8px; border-radius:999px; margin-top:2px;
+}
+.entry .tag.altro{background:#EEE9DC; color:#6B5C33;}
+.entry .body{flex:1;}
+.entry .body .g{color:var(--muted); font-size:.83rem;}
+.water-row{display:flex; align-items:center; gap:12px;}
+.water-count{font-variant-numeric:tabular-nums; font-weight:700; font-size:1.05rem;}
+.round-btn{
+  width:40px; height:40px; border-radius:50%; border:1px solid var(--line);
+  background:var(--green-soft); color:var(--green-deep); font-size:1.2rem; font-weight:700; cursor:pointer;
+}
+.water-bar{height:8px; background:var(--green-soft); border-radius:999px; overflow:hidden; margin-top:8px;}
+.water-bar i{display:block; height:100%; background:var(--leaf); border-radius:999px; transition:width .25s;}
+
+/* ---------- limiti ---------- */
+.limit-item{
+  border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin-bottom:10px; background:var(--card);
+}
+.limit-item.blocked{background:var(--red-soft); border-color:#E5C4BB;}
+.limit-item.goal-done{background:var(--green-soft);}
+.limit-head{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
+.limit-head h3{margin:0; font-size:.93rem;}
+.limit-note{font-size:.78rem; color:var(--muted); margin-top:2px;}
+.limit-blockmsg{font-size:.8rem; color:var(--red); font-weight:600; margin-top:6px;}
+.limit-controls{display:flex; align-items:center; gap:10px; margin-top:9px;}
+.dots{display:flex; gap:5px;}
+.dots i{width:12px; height:12px; border-radius:50%; border:1.5px solid var(--green); display:inline-block;}
+.dots i.on{background:var(--green);}
+.limit-item.blocked .dots i{border-color:var(--red);}
+.limit-item.blocked .dots i.on{background:var(--red);}
+.spacer{flex:1;}
+
+/* ---------- piano (riferimento) ---------- */
+details{border:1px solid var(--line); border-radius:var(--radius); background:var(--card); margin-bottom:10px;}
+summary{
+  cursor:pointer; padding:12px 14px; font-weight:700; font-size:.93rem; color:var(--green-deep);
+  list-style:none; display:flex; justify-content:space-between; align-items:center;
+}
+summary::-webkit-details-marker{display:none;}
+summary::after{content:"+"; font-size:1.1rem; color:var(--muted);}
+details[open] summary::after{content:"–";}
+details .inner{padding:0 14px 12px; font-size:.87rem;}
+details .inner ul{padding-left:18px;}
+details .inner li{margin-bottom:7px;}
+
+/* ---------- misure ---------- */
+.table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+table{border-collapse:collapse; font-size:.8rem; white-space:nowrap; width:100%;}
+th, td{padding:7px 9px; border-bottom:1px solid var(--line); text-align:right; font-variant-numeric:tabular-nums;}
+th:first-child, td:first-child{text-align:left; position:sticky; left:0; background:var(--card);}
+th{background:var(--green-soft); color:var(--green-deep); font-size:.7rem; text-transform:uppercase; letter-spacing:.04em;}
+th:first-child{background:var(--green-soft);}
+td.delta{color:var(--green); font-weight:600;}
+td.delta.neg{color:var(--red);}
+.next-visit{
+  display:flex; gap:10px; align-items:baseline; background:var(--amber-soft);
+  border:1px solid #EAD8B4; border-radius:var(--radius); padding:12px 14px; margin-bottom:14px; font-size:.88rem;
+}
+.next-visit b{color:var(--amber);}
+
+/* ---------- tab bar ---------- */
+nav{
+  position:fixed; bottom:0; left:0; right:0; background:var(--card);
+  border-top:1px solid var(--line); display:flex; z-index:50;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+nav button{
+  flex:1; background:none; border:none; padding:11px 4px 9px; cursor:pointer;
+  font-size:.78rem; font-weight:600; color:var(--muted);
+  border-top:3px solid transparent;
+}
+nav button.active{color:var(--green-deep); border-top-color:var(--green);}
+
+@media print{
+  header, .timeline-wrap, nav, .no-print{display:none !important;}
+  body{background:#fff; padding:0;}
+  .tab{display:none !important;}
+  #tab-misure{display:block !important;}
+  .card{border:none; padding:0;}
+  table{font-size:10pt;}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none !important;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Il mio piano 16:8</h1>
+  <div class="sub">Ambulatorio Obesità · Casa della Salute Ceccano</div>
+  <div class="status-pill" id="statusPill"><span class="dot"></span><span id="statusText">…</span></div>
+</header>
+
+<div class="timeline-wrap">
+  <div class="timeline" id="timeline"></div>
+  <div class="timeline-labels"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+  <div class="timeline-legend">
+    <span><i style="background:repeating-linear-gradient(135deg,#2A4A38 0 4px,#264433 4px 8px)"></i>Digiuno</span>
+    <span><i style="background:#3E7A52"></i>Finestra alimentare</span>
+    <span><i style="background:#8FB55C"></i>Pasti (14–15:30 · 17–19 · 20:30–21:30)</span>
+  </div>
+</div>
+
+<main>
+
+<!-- ============ OGGI ============ -->
+<section class="tab active" id="tab-oggi">
+  <div class="card">
+    <div class="eyebrow">Giorno</div>
+    <input type="date" id="diaryDate">
+  </div>
+
+  <div class="card" id="dayPlanCard"></div>
+
+  <div class="card">
+    <h2>Aggiungi al diario</h2>
+    <div class="form-row">
+      <div class="narrow">
+        <label for="mealType">Pasto</label>
+        <select id="mealType">
+          <option>Pranzo</option>
+          <option>Spuntino</option>
+          <option>Cena</option>
+          <option>Altro</option>
+        </select>
+      </div>
+      <div>
+        <label for="foodDesc">Cosa hai mangiato</label>
+        <input type="text" id="foodDesc" placeholder="es. Pasta integrale con zucchine">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="narrow">
+        <label for="foodGrams">Grammi</label>
+        <input type="number" id="foodGrams" inputmode="numeric" placeholder="es. 100">
+      </div>
+      <div style="display:flex; align-items:flex-end;">
+        <button class="btn btn-full" id="addFoodBtn">Aggiungi</button>
+      </div>
+    </div>
+    <p class="muted" id="timingHint"></p>
+  </div>
+
+  <div class="card">
+    <h2>Diario del giorno</h2>
+    <div id="entriesList"><p class="muted">Nessun pasto registrato per questo giorno.</p></div>
+  </div>
+
+  <div class="card">
+    <h2>Acqua</h2>
+    <div class="water-row">
+      <button class="round-btn" id="waterMinus" aria-label="Togli un bicchiere">−</button>
+      <div class="water-count" id="waterCount">0 bicchieri · 0.0 L</div>
+      <button class="round-btn" id="waterPlus" aria-label="Aggiungi un bicchiere">+</button>
+    </div>
+    <div class="water-bar"><i id="waterBar" style="width:0%"></i></div>
+    <p class="muted" style="margin-top:6px">Obiettivo: 1,5–2 litri al giorno (bicchiere da 200 ml), da bere gradualmente.</p>
+  </div>
+</section>
+
+<!-- ============ LIMITI ============ -->
+<section class="tab" id="tab-limiti">
+  <div class="banner"><b id="weekLabel"></b><br>Quando raggiungi il numero massimo di volte, l'alimento resta bloccato fino a lunedì. I conteggi ripartono da zero a inizio settimana.</div>
+  <div id="limitsList"></div>
+
+  <h2 style="margin:18px 0 10px">Obiettivi della settimana</h2>
+  <div id="goalsList"></div>
+</section>
+
+<!-- ============ PIANO ============ -->
+<section class="tab" id="tab-piano">
+  <div class="banner">Piano basato sul <b>digiuno intermittente 16:8</b>: primo pasto <b>non prima delle 14:00</b>, ultimo pasto entro le <b>21:30</b>. Dalle 21:30 alle 14:00 solo acqua, tè, tisane o caffè amaro. Lo spuntino <b>non va saltato</b>.</div>
+  <div id="weekPlanList"></div>
+  <div id="refSections"></div>
+</section>
+
+<!-- ============ MISURE ============ -->
+<section class="tab" id="tab-misure">
+  <div class="next-visit"><b>Prossimo controllo</b><span>27/08/2026 ore 14:00 — porta con te questa tabella. Dubbi: centroobesitaceccano@gmail.com</span></div>
+
+  <div class="card no-print">
+    <h2>Nuova misurazione</h2>
+    <div class="form-row">
+      <div><label for="mDate">Data</label><input type="date" id="mDate"></div>
+      <div><label for="mPeso">Peso (kg)</label><input type="number" step="0.1" inputmode="decimal" id="mPeso"></div>
+    </div>
+    <div class="form-row">
+      <div><label for="mCV">Vita CV (cm)</label><input type="number" step="0.5" inputmode="decimal" id="mCV"></div>
+      <div><label for="mCO">Ombelico CO (cm)</label><input type="number" step="0.5" inputmode="decimal" id="mCO"></div>
+    </div>
+    <div class="form-row">
+      <div><label for="mCF">Fianchi CF (cm)</label><input type="number" step="0.5" inputmode="decimal" id="mCF"></div>
+      <div><label for="mCC">Collo CC (cm)</label><input type="number" step="0.5" inputmode="decimal" id="mCC"></div>
+    </div>
+    <button class="btn btn-full" id="addMeasureBtn">Salva misurazione</button>
+    <p class="muted" style="margin-top:8px">Altezza: <b id="heightShow"></b> m · <button class="btn small secondary" id="editHeightBtn">modifica</button> — il BMI viene calcolato in automatico.</p>
+  </div>
+
+  <div class="card">
+    <h2>Misurazioni antropometriche</h2>
+    <div class="table-scroll"><table id="measTable"></table></div>
+    <p class="muted" style="margin-top:8px">I «persi» sono calcolati rispetto alla prima misurazione (09/07/2026).</p>
+  </div>
+
+  <div class="card no-print">
+    <h2>Dati e backup</h2>
+    <p class="muted" style="margin-bottom:10px">I dati restano salvati solo su questo telefono, nel browser. Fai un backup ogni tanto: se cancelli i dati del browser, il diario si perde.</p>
+    <div class="form-row">
+      <div><button class="btn secondary btn-full" id="exportBtn">Esporta backup</button></div>
+      <div><button class="btn secondary btn-full" id="importBtn">Importa backup</button></div>
+    </div>
+    <button class="btn secondary btn-full" id="printBtn">Stampa la tabella per la visita</button>
+    <input type="file" id="importFile" accept=".json" style="display:none">
+  </div>
+</section>
+
+</main>
+
+<nav>
+  <button data-tab="tab-oggi" class="active">Oggi</button>
+  <button data-tab="tab-limiti">Limiti</button>
+  <button data-tab="tab-piano">Piano</button>
+  <button data-tab="tab-misure">Misure</button>
+</nav>
+<script>
+/* ================= DATI DEL PIANO ================= */
+const PIANO_GIORNI = {
+  1:{nome:"Lunedì",
+     pranzo:"Pesce (max 200 g) + verdure a piacere + 80 g pane tostato (o alternative) + 1 cucchiaio olio EVO",
+     cena:"Cereale (pasta 100–120 g / cereali in chicco 80 g / pane 100 g) + 100 g formaggio fresco (o 50 g stagionato) + verdure + 1 cucchiaio olio EVO"},
+  2:{nome:"Martedì",
+     pranzo:"Carne bianca (max 200 g) + verdure + 80 g pane tostato (o alternative) + 1 cucchiaio olio EVO",
+     cena:"2–3 uova + verdure + 80 g pane tostato (o alternative) + 1 cucchiaio olio EVO"},
+  3:{nome:"Mercoledì",
+     pranzo:"Cereale (pasta 100–120 g / chicco 80 g / pane 100 g) + pesce (max 180 g) + verdure + 1 cucchiaio olio EVO",
+     cena:"PIATTO UNICO: legumi 60 g secchi o 160 g in scatola + 50 g cereale + verdure + 1 cucchiaio olio EVO (oppure pasta di legumi 60 g + pasta comune 40 g)"},
+  4:{nome:"Giovedì",
+     pranzo:"2 uova + verdure + 80 g pane tostato (o alternative) + 1 cucchiaio olio EVO",
+     cena:"Carne bianca (max 200 g) + verdure + 80 g pane tostato (o alternative) + 1 cucchiaio olio EVO"},
+  5:{nome:"Venerdì",
+     pranzo:"Carne rossa (max 150 g, tagli magri) + verdure + 80 g pane tostato (o alternative) + 1 cucchiaio olio EVO",
+     cena:"Cereale (pasta 100–120 g / chicco 80 g / pane 100 g) + pesce (max 200 g) + verdure + 1 cucchiaio olio EVO"},
+  6:{nome:"Sabato",
+     pranzo:"100 g formaggi freschi (o 50 g stagionati, max 1 volta/sett.) + verdure + 80 g pane tostato + 1 cucchiaio olio EVO",
+     cena:"PASTO LIBERO 🎉 pizza o altro — prima, se possibile, metà piatto di verdure; non abbinare pasta e pane, frutta e dolce"},
+  0:{nome:"Domenica",
+     pranzo:"Carne bianca (max 180 g) + verdure + 80 g pane tostato (o alternative) + 1 cucchiaio olio EVO",
+     cena:"PIATTO UNICO: legumi 60 g secchi o 160 g in scatola + 50 g cereale + verdure + 1 cucchiaio olio EVO (o alternative come mercoledì)"}
+};
+
+const LIMITI = [
+  {id:"pasto_libero", label:"Pasto libero", max:1, note:"Previsto sabato a cena, ma puoi spostarlo: l'importante è che sia uno solo a settimana."},
+  {id:"tonno_vetro", label:"Tonno al vetro", max:1, note:"Max 100 g (80 g se a pranzo del mercoledì)."},
+  {id:"salmone", label:"Salmone affumicato (100 g)", max:1, note:"Conta come il pesce del pasto."},
+  {id:"frutti_mare", label:"Crostacei, polpo, vongole", max:1, note:"Una sola volta a settimana."},
+  {id:"bastoncini", label:"Bastoncini di pesce (3–4)", max:1, note:"Al forno o in friggitrice ad aria, solo con verdura: NO pane o altri carboidrati perché sono panati."},
+  {id:"riso_bianco", label:"Riso bianco", max:2, note:"Preferire basmati, integrale, venere, rosso, farro, orzo, quinoa."},
+  {id:"stagionati", label:"Formaggi stagionati 50 g come pasto", max:1, note:"Grana, parmigiano ecc. al posto del formaggio fresco."},
+  {id:"scamorza", label:"Scamorza / caciocavallo (70 g)", max:1, note:"Al posto dei 100 g di formaggio fresco."},
+  {id:"snack_crackers", label:"Spuntino: crackers + 30 g crudo + 10 olive", max:2, note:""},
+  {id:"snack_grana", label:"Spuntino: finocchio/carota + olio + 30 g grana", max:2, note:""},
+  {id:"piadina", label:"Piadina (al posto del pane)", max:1, note:"Grande, meglio se all'olio di oliva, preferibilmente integrale."},
+  {id:"patate", label:"Patate ~300 g (al posto del pane)", max:2, note:"Non sono una verdura: se le mangi, niente pane o altro sostituto nello stesso pasto."},
+  {id:"bevande_zero", label:"Bevanda zero zuccheri", max:2, note:"Il piano dice max 1–2 volte a settimana; le bevande zuccherate normali sono da evitare del tutto."}
+];
+
+const OBIETTIVI = [
+  {id:"camminata", label:"Camminata 30 min a passo veloce / tapis roulant", target:3, note:"Obiettivo: almeno 3 volte a settimana."}
+];
+
+const SPUNTINI = [
+  "1 frutto fresco (max 150 g) + 8 mandorle/pistacchi/arachidi o 3 noci (non salati) + kefir bianco 125 g o yogurt greco bianco 150 g",
+  "2 gallette di riso o mais + 25 g Philadelphia + 2 cucchiaini di crema 100% frutta secca",
+  "1 yogurt greco bianco 150 g + 3 biscotti con gocce di cioccolato a basso zucchero (es. Misura «dolce senza»)",
+  "1 pacchetto crackers senza sale + 30 g prosciutto crudo + 10 olive dissalate — MAX 2 VOLTE A SETTIMANA",
+  "1 yogurt alla frutta 150 g SOLO marca FAGE Trublend + 8 mandorle/pistacchi/arachidi o 3 noci",
+  "1 finocchio o carota + 1 cucchiaino olio EVO + 30 g grana/parmigiano — MAX 2 VOLTE A SETTIMANA",
+  "1 frutto fresco (max 150 g) + 10 olive dissalate + kefir bianco da bere (no frutta/cereali) o kefir 125 g",
+  "1 pacchetto cracker comuni o integrali (25–30 g) + 1 monoporzione yogurt bianco da bere magro (non alla frutta)"
+];
+
+const ALT_PANE = [
+  "80 g di altro cereale preferibilmente integrale (riso basmati, farro, orzo, quinoa, mix cereali, bulgur…)",
+  "5–6 fiori d'acqua Mulino Bianco",
+  "2 freselle medie, meglio se integrali",
+  "4–5 gallette di farro bio / grano saraceno / mais",
+  "5 fette WASA",
+  "60 g di pane carasau",
+  "1 piadina grande (max 1 volta a settimana)",
+  "2 patate medie ~300 g senza buccia (max 2 volte a settimana)",
+  "1 frutto fresco max 150 g — tranne uva, fichi, banane mature, mango, spremute/frullati. Se scegli il frutto, NIENTE pane o altro cereale in quel pasto"
+];
+
+const RACCOMANDAZIONI = [
+  "Si possono scambiare i pranzi tra loro, ma rispettare le porzioni dei carboidrati e le frequenze settimanali. Pesare soprattutto cereali, pasta, pane, olio e formaggi.",
+  "Olio extravergine di oliva a crudo. Con 60 g di olive denocciolate e dissalate nel pasto, ridurre l'olio da un cucchiaio a un cucchiaino.",
+  "Bere almeno 1,5–2 litri di acqua al giorno, gradualmente.",
+  "Limitare il sale. Non spizzicare durante la giornata.",
+  "Evitare cibi confezionati, preferire quelli freschi. Eliminare dolci, dolciumi, zucchero, merendine, fuoripasto.",
+  "NO bevande zuccherine; al massimo versione zero zuccheri 1–2 volte a settimana.",
+  "Esercizio fisico: almeno 30 minuti di camminata a passo veloce 3 volte a settimana.",
+  "Dopo le 21:30 e fino alle 14:00 del giorno dopo: solo acqua, tè, tisane, caffè amaro. NO frutta.",
+  "Al mattino (7:00–14:00) è concesso caffè senza zucchero o tisana senza zucchero.",
+  "Pasti sostitutivi a pranzo nei giorni di lavoro: 25–30 g whey protein in 150–200 ml di acqua fredda/tiepida (marche consigliate: Ketocompleat neutro, WhyNature Isolate, Named, Foodspring) oppure 1 barretta sostitutiva (zuccheri semplici ≤ 22 g/100 g). Se dà gonfiore o disturbi digestivi, sospendere.",
+  "Se a pranzo usi il pasto sostitutivo, lo spuntino del pomeriggio è obbligatorio. Non mangiare mai il frutto da solo. NON saltare lo spuntino."
+];
+
+/* ================= STATO ================= */
+const KEY = "pianoRenato168";
+let state = load();
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if(s && s.measures) return s;
+  }catch(e){}
+  return {
+    settings:{altezza:1.68},
+    foodLog:{}, water:{}, limits:{}, goals:{},
+    measures:[{date:"2026-07-09", peso:96.1, cv:109.5, co:123, cf:115, cc:40}]
+  };
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+
+/* ================= UTILITÀ DATE ================= */
+function pad(n){return String(n).padStart(2,"0");}
+function isoLocal(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+function todayISO(){return isoLocal(new Date());}
+function mondayOf(dateStr){
+  const d = new Date(dateStr+"T12:00:00");
+  const off = (d.getDay()+6)%7;
+  d.setDate(d.getDate()-off);
+  return isoLocal(d);
+}
+function weekKeyNow(){return mondayOf(todayISO());}
+function fmtIT(dateStr){
+  const d = new Date(dateStr+"T12:00:00");
+  return d.toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric"});
+}
+function fmtShort(dateStr){
+  const d = new Date(dateStr+"T12:00:00");
+  return d.toLocaleDateString("it-IT",{day:"numeric",month:"short"});
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+
+/* ================= TIMELINE + STATO DIGIUNO ================= */
+function pct(min){return (min/1440*100).toFixed(3)+"%";}
+function seg(cls, fromMin, toMin){
+  return '<div class="seg '+cls+'" style="left:'+pct(fromMin)+'; width:'+pct(toMin-fromMin)+'"></div>';
+}
+function buildTimeline(){
+  const t = document.getElementById("timeline");
+  let h = "";
+  h += seg("seg-fast", 0, 840);            // 00:00–14:00 digiuno
+  h += seg("seg-window", 840, 1290);       // 14:00–21:30 finestra
+  h += seg("seg-meal", 840, 930);          // pranzo 14–15:30
+  h += seg("seg-meal", 1020, 1140);        // spuntino 17–19
+  h += seg("seg-meal", 1230, 1290);        // cena 20:30–21:30
+  h += seg("seg-fast", 1290, 1440);        // 21:30–24 digiuno
+  h += '<div class="now" id="nowMarker"></div>';
+  t.innerHTML = h;
+}
+function updateStatus(){
+  const now = new Date();
+  const m = now.getHours()*60 + now.getMinutes();
+  const marker = document.getElementById("nowMarker");
+  if(marker) marker.style.left = pct(m);
+  const pill = document.getElementById("statusPill");
+  const txt = document.getElementById("statusText");
+  let fasting = false, msg = "";
+  if(m < 840){
+    fasting = true;
+    const left = 840 - m;
+    msg = "Digiuno · primo pasto tra "+Math.floor(left/60)+" h "+pad(left%60)+" min (dalle 14:00)";
+  } else if(m < 930){ msg = "Finestra pranzo (14:00–15:30)"; }
+  else if(m < 1020){ msg = "Finestra alimentare · spuntino dalle 17:00"; }
+  else if(m < 1140){ msg = "Finestra spuntino (17:00–19:00) — non saltarlo"; }
+  else if(m < 1230){ msg = "Finestra alimentare · cena dalle 20:30"; }
+  else if(m < 1290){ msg = "Finestra cena (20:30–21:30) — ultimo pasto"; }
+  else { fasting = true; msg = "Digiuno fino alle 14:00 di domani · solo acqua, tè, tisane, caffè amaro"; }
+  pill.classList.toggle("fasting", fasting);
+  txt.textContent = msg;
+  const hint = document.getElementById("timingHint");
+  if(hint) hint.textContent = fasting ? "⚠️ In questo orario il piano prevede il digiuno: solo liquidi senza calorie." : "Sei nella finestra alimentare (14:00–21:30).";
+}
+
+/* ================= TAB OGGI ================= */
+const diaryDate = document.getElementById("diaryDate");
+function renderDayPlan(){
+  const d = new Date(diaryDate.value+"T12:00:00");
+  const p = PIANO_GIORNI[d.getDay()];
+  document.getElementById("dayPlanCard").innerHTML =
+    '<div class="eyebrow">Cosa prevede il piano</div>'+
+    '<h2>'+p.nome+" "+fmtShort(diaryDate.value)+'</h2>'+
+    '<div class="meal-plan-line"><b>Pranzo</b><span>'+p.pranzo+' <span class="muted">(14:00–15:30, oppure pasto sostitutivo)</span></span></div>'+
+    '<div class="meal-plan-line"><b>Spuntino</b><span>Uno dalla lista (17:00–19:00) — vedi scheda «Piano». Obbligatorio se a pranzo hai usato il sostitutivo.</span></div>'+
+    '<div class="meal-plan-line"><b>Cena</b><span>'+p.cena+' <span class="muted">(20:30–21:30)</span></span></div>';
+}
+function renderEntries(){
+  const list = document.getElementById("entriesList");
+  const entries = state.foodLog[diaryDate.value] || [];
+  if(!entries.length){
+    list.innerHTML = '<p class="muted">Nessun pasto registrato per questo giorno.</p>';
+    return;
+  }
+  const order = {Pranzo:1, Spuntino:2, Cena:3, Altro:4};
+  const sorted = entries.map((e,i)=>({...e, _i:i})).sort((a,b)=>(order[a.meal]||9)-(order[b.meal]||9) || (a.time||"").localeCompare(b.time||""));
+  list.innerHTML = sorted.map(e=>
+    '<div class="entry">'+
+      '<span class="tag '+(e.meal==="Altro"?"altro":"")+'">'+esc(e.meal)+'</span>'+
+      '<div class="body"><div>'+esc(e.desc)+'</div>'+
+      '<div class="g">'+(e.grams?esc(e.grams)+" g · ":"")+(e.time?"ore "+esc(e.time):"")+'</div></div>'+
+      '<button class="btn small danger-ghost" data-del="'+e._i+'" aria-label="Elimina">✕</button>'+
+    '</div>').join("");
+}
+document.getElementById("entriesList").addEventListener("click", ev=>{
+  const b = ev.target.closest("[data-del]");
+  if(!b) return;
+  const arr = state.foodLog[diaryDate.value]||[];
+  arr.splice(+b.dataset.del,1);
+  if(!arr.length) delete state.foodLog[diaryDate.value];
+  save(); renderEntries();
+});
+document.getElementById("addFoodBtn").addEventListener("click", ()=>{
+  const desc = document.getElementById("foodDesc").value.trim();
+  if(!desc){ document.getElementById("foodDesc").focus(); return; }
+  const grams = document.getElementById("foodGrams").value;
+  const meal = document.getElementById("mealType").value;
+  const now = new Date();
+  const time = (diaryDate.value===todayISO()) ? pad(now.getHours())+":"+pad(now.getMinutes()) : "";
+  (state.foodLog[diaryDate.value] = state.foodLog[diaryDate.value]||[]).push({meal, desc, grams, time});
+  save();
+  document.getElementById("foodDesc").value = "";
+  document.getElementById("foodGrams").value = "";
+  renderEntries();
+});
+function renderWater(){
+  const n = state.water[diaryDate.value]||0;
+  const litri = (n*0.2).toFixed(1).replace(".",",");
+  document.getElementById("waterCount").textContent = n+" bicchieri · "+litri+" L";
+  document.getElementById("waterBar").style.width = Math.min(100, n/10*100)+"%";
+}
+document.getElementById("waterPlus").addEventListener("click", ()=>{
+  state.water[diaryDate.value]=(state.water[diaryDate.value]||0)+1; save(); renderWater();
+});
+document.getElementById("waterMinus").addEventListener("click", ()=>{
+  const n=(state.water[diaryDate.value]||0); if(n>0) state.water[diaryDate.value]=n-1; save(); renderWater();
+});
+diaryDate.addEventListener("change", ()=>{ renderDayPlan(); renderEntries(); renderWater(); });
+
+/* ================= TAB LIMITI ================= */
+function dots(c, max){
+  let h='<span class="dots">';
+  for(let i=0;i<max;i++) h+='<i class="'+(i<c?"on":"")+'"></i>';
+  return h+"</span>";
+}
+function renderLimits(){
+  const wk = weekKeyNow();
+  const monday = new Date(wk+"T12:00:00");
+  const sunday = new Date(monday); sunday.setDate(sunday.getDate()+6);
+  document.getElementById("weekLabel").textContent =
+    "Settimana dal "+monday.toLocaleDateString("it-IT",{day:"numeric",month:"long"})+
+    " al "+sunday.toLocaleDateString("it-IT",{day:"numeric",month:"long"});
+  const counts = state.limits[wk]||{};
+  document.getElementById("limitsList").innerHTML = LIMITI.map(it=>{
+    const c = Math.min(counts[it.id]||0, it.max);
+    const blocked = c>=it.max;
+    return '<div class="limit-item'+(blocked?" blocked":"")+'">'+
+      '<div class="limit-head"><div><h3>'+it.label+'</h3>'+
+      (it.note?'<div class="limit-note">'+it.note+'</div>':"")+'</div>'+dots(c,it.max)+'</div>'+
+      (blocked?'<div class="limit-blockmsg">🔒 Limite settimanale raggiunto — di nuovo disponibile da lunedì</div>':"")+
+      '<div class="limit-controls">'+
+        '<button class="btn small" data-lim="'+it.id+'" data-dir="1"'+(blocked?" disabled":"")+'>Segna consumato</button>'+
+        (c>0?'<button class="btn small secondary" data-lim="'+it.id+'" data-dir="-1">Annulla</button>':"")+
+        '<span class="spacer"></span><span class="muted">'+c+" / "+it.max+" a settimana</span>"+
+      '</div></div>';
+  }).join("");
+  const g = state.goals[wk]||{};
+  document.getElementById("goalsList").innerHTML = OBIETTIVI.map(it=>{
+    const c = g[it.id]||0;
+    const done = c>=it.target;
+    return '<div class="limit-item'+(done?" goal-done":"")+'">'+
+      '<div class="limit-head"><div><h3>'+it.label+'</h3><div class="limit-note">'+it.note+'</div></div>'+dots(Math.min(c,it.target),it.target)+'</div>'+
+      (done?'<div class="limit-blockmsg" style="color:var(--green)">✔ Obiettivo della settimana raggiunto'+(c>it.target?" ("+c+" volte)":"")+'</div>':"")+
+      '<div class="limit-controls">'+
+        '<button class="btn small" data-goal="'+it.id+'" data-dir="1">Fatta oggi</button>'+
+        (c>0?'<button class="btn small secondary" data-goal="'+it.id+'" data-dir="-1">Annulla</button>':"")+
+        '<span class="spacer"></span><span class="muted">'+c+" / "+it.target+"</span>"+
+      '</div></div>';
+  }).join("");
+}
+document.getElementById("tab-limiti").addEventListener("click", ev=>{
+  const bl = ev.target.closest("[data-lim]");
+  const bg = ev.target.closest("[data-goal]");
+  const wk = weekKeyNow();
+  if(bl){
+    const it = LIMITI.find(x=>x.id===bl.dataset.lim);
+    const w = state.limits[wk] = state.limits[wk]||{};
+    w[it.id] = Math.max(0, Math.min(it.max, (w[it.id]||0) + (+bl.dataset.dir)));
+    save(); renderLimits();
+  } else if(bg){
+    const w = state.goals[wk] = state.goals[wk]||{};
+    w[bg.dataset.goal] = Math.max(0,(w[bg.dataset.goal]||0) + (+bg.dataset.dir));
+    save(); renderLimits();
+  }
+});
+
+/* ================= TAB PIANO ================= */
+function renderPlanRef(){
+  const orderDays = [1,2,3,4,5,6,0];
+  document.getElementById("weekPlanList").innerHTML = orderDays.map(d=>{
+    const p = PIANO_GIORNI[d];
+    return '<details><summary>'+p.nome+'</summary><div class="inner">'+
+      '<div class="meal-plan-line"><b>Pranzo</b><span>'+p.pranzo+'</span></div>'+
+      '<div class="meal-plan-line"><b>Spuntino</b><span>Uno dalla lista spuntini (17:00–19:00)</span></div>'+
+      '<div class="meal-plan-line"><b>Cena</b><span>'+p.cena+'</span></div>'+
+      '</div></details>';
+  }).join("");
+  document.getElementById("refSections").innerHTML =
+    '<details><summary>Spuntini di metà pomeriggio (17–19)</summary><div class="inner"><ul>'+
+    SPUNTINI.map(s=>"<li>"+s+"</li>").join("")+
+    '</ul><p class="muted">Si possono accompagnare con caffè senza zucchero, tè o tisane. Nessun altro spuntino fuori lista; non mangiare il frutto da solo; NON saltare lo spuntino.</p></div></details>'+
+    '<details><summary>Alternative del pane (80 g)</summary><div class="inner"><ul>'+
+    ALT_PANE.map(s=>"<li>"+s+"</li>").join("")+
+    '</ul><p class="muted">Le patate non sono una verdura: se le mangi come contorno, niente pane o altro sostituto nello stesso pasto.</p></div></details>'+
+    '<details><summary>Raccomandazioni</summary><div class="inner"><ul>'+
+    RACCOMANDAZIONI.map(s=>"<li>"+s+"</li>").join("")+
+    '</ul></div></details>';
+}
+
+/* ================= TAB MISURE ================= */
+function bmi(peso){
+  const h = state.settings.altezza;
+  return h ? (peso/(h*h)) : 0;
+}
+function fmtN(v){ return (v===undefined||v===null||v==="")?"":String(v).replace(".",","); }
+function delta(base, val){
+  if(base==null || val==null || base==="" || val==="") return "";
+  const d = +(base - val).toFixed(1);
+  return d;
+}
+function renderMeasures(){
+  document.getElementById("heightShow").textContent = String(state.settings.altezza).replace(".",",");
+  const rows = [...state.measures].sort((a,b)=>a.date.localeCompare(b.date));
+  const base = rows[0];
+  let h = "<thead><tr><th>Data</th><th>Peso kg</th><th>BMI</th><th>CV</th><th>CO</th><th>CF</th><th>CC</th>"+
+          "<th>Kg persi</th><th>Cm vita</th><th>Cm ombelico</th><th>Cm fianchi</th><th>Cm collo</th><th class='no-print'></th></tr></thead><tbody>";
+  h += rows.map((r,idx)=>{
+    const first = idx===0;
+    const dk = v => {
+      if(first || v==="" ) return "<td></td>";
+      const cls = (typeof v==="number" && v<0) ? "delta neg" : "delta";
+      return '<td class="'+cls+'">'+(v===""?"":fmtN(v))+"</td>";
+    };
+    return "<tr><td>"+fmtIT(r.date)+"</td><td>"+fmtN(r.peso)+"</td><td>"+fmtN(+bmi(r.peso).toFixed(1))+"</td>"+
+      "<td>"+fmtN(r.cv)+"</td><td>"+fmtN(r.co)+"</td><td>"+fmtN(r.cf)+"</td><td>"+fmtN(r.cc)+"</td>"+
+      dk(delta(base.peso, r.peso))+dk(delta(base.cv, r.cv))+dk(delta(base.co, r.co))+dk(delta(base.cf, r.cf))+dk(delta(base.cc, r.cc))+
+      '<td class="no-print">'+(first?"":'<button class="btn small danger-ghost" data-mdel="'+r.date+'">✕</button>')+"</td></tr>";
+  }).join("");
+  h += "</tbody>";
+  document.getElementById("measTable").innerHTML = h;
+}
+document.getElementById("measTable").addEventListener("click", ev=>{
+  const b = ev.target.closest("[data-mdel]");
+  if(!b) return;
+  if(!confirm("Eliminare la misurazione del "+fmtIT(b.dataset.mdel)+"?")) return;
+  state.measures = state.measures.filter(m=>m.date!==b.dataset.mdel);
+  save(); renderMeasures();
+});
+document.getElementById("addMeasureBtn").addEventListener("click", ()=>{
+  const date = document.getElementById("mDate").value;
+  const peso = parseFloat(document.getElementById("mPeso").value);
+  if(!date || !peso){ alert("Servono almeno data e peso."); return; }
+  const num = id => { const v=document.getElementById(id).value; return v===""?"":parseFloat(v); };
+  const rec = {date, peso, cv:num("mCV"), co:num("mCO"), cf:num("mCF"), cc:num("mCC")};
+  state.measures = state.measures.filter(m=>m.date!==date);
+  state.measures.push(rec);
+  save(); renderMeasures();
+  ["mPeso","mCV","mCO","mCF","mCC"].forEach(id=>document.getElementById(id).value="");
+  alert("Misurazione salvata ✔");
+});
+document.getElementById("editHeightBtn").addEventListener("click", ()=>{
+  const v = prompt("Altezza in metri (es. 1.68):", state.settings.altezza);
+  if(!v) return;
+  const n = parseFloat(String(v).replace(",","."));
+  if(n>1 && n<2.5){ state.settings.altezza=n; save(); renderMeasures(); }
+});
+
+/* ================= BACKUP ================= */
+document.getElementById("exportBtn").addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "piano-backup-"+todayISO()+".json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+document.getElementById("importBtn").addEventListener("click", ()=>document.getElementById("importFile").click());
+document.getElementById("importFile").addEventListener("change", ev=>{
+  const f = ev.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const s = JSON.parse(r.result);
+      if(!s.measures) throw 0;
+      state = s; save();
+      renderAll();
+      alert("Backup importato ✔");
+    }catch(e){ alert("File non valido: scegli un backup esportato da questa app."); }
+  };
+  r.readAsText(f);
+  ev.target.value = "";
+});
+document.getElementById("printBtn").addEventListener("click", ()=>window.print());
+
+/* ================= NAVIGAZIONE ================= */
+document.querySelectorAll("nav button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active", x===b));
+    document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.id===b.dataset.tab));
+    window.scrollTo({top:0});
+  });
+});
+
+/* ================= AVVIO ================= */
+function renderAll(){
+  renderDayPlan(); renderEntries(); renderWater();
+  renderLimits(); renderPlanRef(); renderMeasures();
+}
+diaryDate.value = todayISO();
+document.getElementById("mDate").value = todayISO();
+buildTimeline();
+updateStatus();
+setInterval(updateStatus, 30000);
+renderAll();
+
+/* PWA: service worker per l'uso offline */
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>
