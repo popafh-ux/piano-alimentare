@@ -131,6 +131,50 @@ label{font-size:.78rem; font-weight:600; color:var(--muted); display:block; marg
 .water-bar{height:8px; background:var(--green-soft); border-radius:999px; overflow:hidden; margin-top:8px;}
 .water-bar i{display:block; height:100%; background:var(--leaf); border-radius:999px; transition:width .25s;}
 
+/* ---------- pianificatore giorni ---------- */
+.week-nav{display:flex; gap:6px; align-items:stretch;}
+.round-btn.arrow{width:32px; height:auto; border-radius:10px; font-size:1.1rem; flex:none;}
+.week-strip{display:flex; gap:4px; flex:1;}
+.day-chip{
+  flex:1; border:1px solid var(--line); background:#FDFDFB; border-radius:10px;
+  padding:6px 0 4px; text-align:center; cursor:pointer; font-size:.66rem; font-weight:600;
+  color:var(--muted); min-width:0;
+}
+.day-chip b{display:block; font-size:.95rem; color:var(--ink); font-variant-numeric:tabular-nums;}
+.day-chip .mark{display:block; width:5px; height:5px; margin:3px auto 0; border-radius:50%; background:transparent;}
+.day-chip.has .mark{background:var(--leaf);}
+.day-chip.sel{background:var(--green); border-color:var(--green); color:#E9F2E2;}
+.day-chip.sel b{color:#fff;}
+.day-chip.sel.has .mark{background:#FFE9A8;}
+.meal-slot{padding:13px 0; border-top:1px solid var(--line);}
+.meal-slot:first-of-type{border-top:none; padding-top:4px;}
+.meal-slot-head{display:flex; align-items:baseline; gap:8px;}
+.meal-slot-head h3{margin:0; font-size:.95rem; color:var(--green-deep);}
+.meal-slot-head .when{font-size:.74rem; color:var(--muted);}
+.save-flash{font-size:.72rem; color:var(--green); font-weight:700; opacity:0; transition:opacity .25s; margin-left:auto;}
+.save-flash.show{opacity:1;}
+.plan-hint{font-size:.78rem; color:var(--muted); margin:3px 0 8px;}
+textarea.meal-input{resize:none; min-height:54px; overflow:hidden; line-height:1.45; font-size:.95rem;}
+
+/* ---------- timer 16:8 ---------- */
+.fast-wrap{display:flex; align-items:center; gap:16px;}
+.fast-ring{width:118px; height:118px; flex:none; position:relative;}
+.fast-ring svg{transform:rotate(-90deg); display:block;}
+.fast-ring .ring-bg{fill:none; stroke:#E7ECE2; stroke-width:10;}
+.fast-ring .ring-fg{fill:none; stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset .5s linear;}
+.fast-ring .ring-emoji{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:1.9rem;
+}
+.fast-info{flex:1; min-width:0;}
+.fast-label{font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.09em;}
+.fast-time{font-size:1.85rem; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.15; margin:2px 0;}
+.fast-sub{font-size:.82rem; color:var(--muted);}
+.phase-fast .fast-label, .phase-fast .fast-time{color:var(--red);}
+.phase-fast .ring-fg{stroke:var(--red);}
+.phase-eat .fast-label, .phase-eat .fast-time{color:var(--green);}
+.phase-eat .ring-fg{stroke:var(--green);}
+.fast-actions{margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;}
+
 /* ---------- limiti ---------- */
 .limit-item{
   border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin-bottom:10px; background:var(--card);
@@ -225,46 +269,19 @@ nav button.active{color:var(--green-deep); border-top-color:var(--green);}
 
 <!-- ============ OGGI ============ -->
 <section class="tab active" id="tab-oggi">
+  <div class="card" id="fastCard"></div>
+
   <div class="card">
     <div class="eyebrow">Giorno</div>
-    <input type="date" id="diaryDate">
-  </div>
-
-  <div class="card" id="dayPlanCard"></div>
-
-  <div class="card">
-    <h2>Aggiungi al diario</h2>
-    <div class="form-row">
-      <div class="narrow">
-        <label for="mealType">Pasto</label>
-        <select id="mealType">
-          <option>Pranzo</option>
-          <option>Spuntino</option>
-          <option>Cena</option>
-          <option>Altro</option>
-        </select>
-      </div>
-      <div>
-        <label for="foodDesc">Cosa hai mangiato</label>
-        <input type="text" id="foodDesc" placeholder="es. Pasta integrale con zucchine">
-      </div>
+    <div class="week-nav">
+      <button class="round-btn arrow" id="weekPrev" aria-label="Settimana precedente">‹</button>
+      <div class="week-strip" id="weekStrip"></div>
+      <button class="round-btn arrow" id="weekNext" aria-label="Settimana successiva">›</button>
     </div>
-    <div class="form-row">
-      <div class="narrow">
-        <label for="foodGrams">Grammi</label>
-        <input type="number" id="foodGrams" inputmode="numeric" placeholder="es. 100">
-      </div>
-      <div style="display:flex; align-items:flex-end;">
-        <button class="btn btn-full" id="addFoodBtn">Aggiungi</button>
-      </div>
-    </div>
-    <p class="muted" id="timingHint"></p>
+    <input type="date" id="diaryDate" style="margin-top:10px">
   </div>
 
-  <div class="card">
-    <h2>Diario del giorno</h2>
-    <div id="entriesList"><p class="muted">Nessun pasto registrato per questo giorno.</p></div>
-  </div>
+  <div class="card" id="mealsCard"></div>
 
   <div class="card">
     <h2>Acqua</h2>
@@ -431,11 +448,26 @@ let state = load();
 function load(){
   try{
     const s = JSON.parse(localStorage.getItem(KEY));
-    if(s && s.measures) return s;
+    if(s && s.measures){
+      if(!s.meals){
+        s.meals = {};
+        const map = {Pranzo:"pranzo", Spuntino:"spuntino", Cena:"cena", Altro:"altro"};
+        for(const d in (s.foodLog||{})){
+          const grp = {};
+          s.foodLog[d].forEach(e=>{
+            const k = map[e.meal]||"altro";
+            const line = e.desc + (e.grams?" "+e.grams+" g":"") + (e.time?" (ore "+e.time+")":"");
+            grp[k] = (grp[k]?grp[k]+"\n":"") + line;
+          });
+          if(Object.keys(grp).length) s.meals[d] = grp;
+        }
+      }
+      return s;
+    }
   }catch(e){}
   return {
     settings:{altezza:1.68},
-    foodLog:{}, water:{}, limits:{}, goals:{},
+    meals:{}, foodLog:{}, water:{}, limits:{}, goals:{},
     measures:[{date:"2026-07-09", peso:96.1, cv:109.5, co:123, cf:115, cc:40}]
   };
 }
@@ -503,55 +535,173 @@ function updateStatus(){
   if(hint) hint.textContent = fasting ? "⚠️ In questo orario il piano prevede il digiuno: solo liquidi senza calorie." : "Sei nella finestra alimentare (14:00–21:30).";
 }
 
+/* ================= TIMER 16:8 ================= */
+const H16 = 16*3600*1000, H8 = 8*3600*1000;
+const RING_C = 2*Math.PI*52; // circonferenza (r=52)
+let lastFastPhase = null;
+
+function fastPhase(){
+  const f = state.fast;
+  if(!f || !f.start) return {phase:"idle"};
+  const el = Date.now() - f.start;
+  if(el < 0) return {phase:"idle"};
+  if(el < H16) return {phase:"fast", remain:H16-el, total:H16, end:f.start+H16};
+  if(el < H16+H8) return {phase:"eat", remain:H16+H8-el, total:H8, end:f.start+H16+H8};
+  return {phase:"done"};
+}
+function fmtHMS(ms){
+  const s = Math.max(0, Math.round(ms/1000));
+  return pad(Math.floor(s/3600))+":"+pad(Math.floor(s%3600/60))+":"+pad(s%60);
+}
+function fmtClockTs(ts){
+  const d = new Date(ts);
+  const oggi = isoLocal(d)===todayISO() ? "" : " di domani";
+  return pad(d.getHours())+":"+pad(d.getMinutes())+oggi;
+}
+function ringHTML(emoji){
+  return '<div class="fast-ring">'+
+    '<svg viewBox="0 0 118 118" width="118" height="118" aria-hidden="true">'+
+    '<circle class="ring-bg" cx="59" cy="59" r="52"></circle>'+
+    '<circle class="ring-fg" id="ringFg" cx="59" cy="59" r="52" stroke-dasharray="'+RING_C+'" stroke-dashoffset="0"></circle>'+
+    '</svg><div class="ring-emoji">'+emoji+'</div></div>';
+}
+function buildFastCard(p){
+  const c = document.getElementById("fastCard");
+  if(p.phase==="idle" || p.phase==="done"){
+    c.className = "card";
+    c.innerHTML = '<div class="eyebrow">Timer 16:8</div>'+
+      (p.phase==="done" ? '<h2>Ciclo completato 🎉</h2><p class="muted" style="margin-bottom:10px">16 ore di digiuno + 8 di finestra alimentare. Quando finisci l\'ultimo pasto, riparti.</p>'
+                        : '<p class="muted" style="margin-bottom:10px">Premi il pulsante dopo l\'ultimo boccone della sera: partono le 16 ore di digiuno. Il timer continua anche ad app chiusa.</p>')+
+      '<button class="btn btn-full" data-fast="start">▶ Inizia le 16 ore di digiuno</button>';
+  } else if(p.phase==="fast"){
+    c.className = "card phase-fast";
+    c.innerHTML = '<div class="eyebrow">Timer 16:8</div>'+
+      '<div class="fast-wrap">'+ringHTML("🔒")+
+      '<div class="fast-info"><div class="fast-label">Digiuno in corso</div>'+
+      '<div class="fast-time" id="fastTime">—</div>'+
+      '<div class="fast-sub">Potrai mangiare alle <b>'+fmtClockTs(p.end)+'</b>. Solo acqua, tè, tisane, caffè amaro.</div></div></div>'+
+      '<div class="fast-actions"><button class="btn small secondary" data-fast="cancel">Annulla timer</button></div>';
+  } else { // eat
+    c.className = "card phase-eat";
+    c.innerHTML = '<div class="eyebrow">Timer 16:8</div>'+
+      '<div class="fast-wrap">'+ringHTML("🍽️")+
+      '<div class="fast-info"><div class="fast-label">Puoi mangiare</div>'+
+      '<div class="fast-time" id="fastTime">—</div>'+
+      '<div class="fast-sub">La finestra si chiude alle <b>'+fmtClockTs(p.end)+'</b>.</div></div></div>'+
+      '<div class="fast-actions">'+
+      '<button class="btn small" data-fast="start">Ho finito di mangiare: inizia il digiuno</button>'+
+      '<button class="btn small secondary" data-fast="cancel">Annulla timer</button></div>';
+  }
+}
+function tickFast(){
+  const p = fastPhase();
+  if(p.phase !== lastFastPhase){
+    buildFastCard(p);
+    lastFastPhase = p.phase;
+  }
+  if(p.phase==="fast" || p.phase==="eat"){
+    const t = document.getElementById("fastTime");
+    if(t) t.textContent = fmtHMS(p.remain);
+    const r = document.getElementById("ringFg");
+    if(r) r.style.strokeDashoffset = (RING_C * (1 - p.remain/p.total)).toFixed(1);
+  }
+}
+document.getElementById("fastCard").addEventListener("click", ev=>{
+  const b = ev.target.closest("[data-fast]");
+  if(!b) return;
+  if(b.dataset.fast==="start"){
+    state.fast = {start: Date.now()};
+    save(); lastFastPhase = null; tickFast();
+  } else if(b.dataset.fast==="cancel"){
+    if(confirm("Annullare il timer in corso?")){
+      state.fast = null;
+      save(); lastFastPhase = null; tickFast();
+    }
+  }
+});
+
 /* ================= TAB OGGI ================= */
 const diaryDate = document.getElementById("diaryDate");
-function renderDayPlan(){
-  const d = new Date(diaryDate.value+"T12:00:00");
-  const p = PIANO_GIORNI[d.getDay()];
-  document.getElementById("dayPlanCard").innerHTML =
-    '<div class="eyebrow">Cosa prevede il piano</div>'+
-    '<h2>'+p.nome+" "+fmtShort(diaryDate.value)+'</h2>'+
-    '<div class="meal-plan-line"><b>Pranzo</b><span>'+p.pranzo+' <span class="muted">(14:00–15:30, oppure pasto sostitutivo)</span></span></div>'+
-    '<div class="meal-plan-line"><b>Spuntino</b><span>Uno dalla lista (17:00–19:00) — vedi scheda «Piano». Obbligatorio se a pranzo hai usato il sostitutivo.</span></div>'+
-    '<div class="meal-plan-line"><b>Cena</b><span>'+p.cena+' <span class="muted">(20:30–21:30)</span></span></div>';
+const DAY_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
+const SLOTS = [
+  {id:"pranzo",   nome:"Pranzo",   when:"14:00–15:30", hint:d=>PIANO_GIORNI[d].pranzo+" — oppure pasto sostitutivo (whey/barretta)."},
+  {id:"spuntino", nome:"Spuntino", when:"17:00–19:00", hint:d=>"Uno dalla lista spuntini (vedi «Piano»). Obbligatorio se a pranzo hai usato il sostitutivo."},
+  {id:"cena",     nome:"Cena",     when:"20:30–21:30", hint:d=>PIANO_GIORNI[d].cena},
+  {id:"altro",    nome:"Note / fuori pasto", when:"", hint:d=>"Extra, sgarri, com'è andato il digiuno…"}
+];
+function dayHasText(dateStr){
+  const m = state.meals[dateStr];
+  return !!(m && Object.values(m).some(v=>v && v.trim()));
 }
-function renderEntries(){
-  const list = document.getElementById("entriesList");
-  const entries = state.foodLog[diaryDate.value] || [];
-  if(!entries.length){
-    list.innerHTML = '<p class="muted">Nessun pasto registrato per questo giorno.</p>';
-    return;
+function shiftDate(dateStr, days){
+  const d = new Date(dateStr+"T12:00:00");
+  d.setDate(d.getDate()+days);
+  return isoLocal(d);
+}
+function renderWeekStrip(){
+  const mon = mondayOf(diaryDate.value);
+  let h = "";
+  for(let i=0;i<7;i++){
+    const ds = shiftDate(mon, i);
+    const d = new Date(ds+"T12:00:00");
+    h += '<button type="button" class="day-chip'+(ds===diaryDate.value?" sel":"")+(dayHasText(ds)?" has":"")+'" data-day="'+ds+'">'+
+         DAY_SHORT[d.getDay()]+'<b>'+d.getDate()+'</b><span class="mark"></span></button>';
   }
-  const order = {Pranzo:1, Spuntino:2, Cena:3, Altro:4};
-  const sorted = entries.map((e,i)=>({...e, _i:i})).sort((a,b)=>(order[a.meal]||9)-(order[b.meal]||9) || (a.time||"").localeCompare(b.time||""));
-  list.innerHTML = sorted.map(e=>
-    '<div class="entry">'+
-      '<span class="tag '+(e.meal==="Altro"?"altro":"")+'">'+esc(e.meal)+'</span>'+
-      '<div class="body"><div>'+esc(e.desc)+'</div>'+
-      '<div class="g">'+(e.grams?esc(e.grams)+" g · ":"")+(e.time?"ore "+esc(e.time):"")+'</div></div>'+
-      '<button class="btn small danger-ghost" data-del="'+e._i+'" aria-label="Elimina">✕</button>'+
-    '</div>').join("");
+  document.getElementById("weekStrip").innerHTML = h;
 }
-document.getElementById("entriesList").addEventListener("click", ev=>{
-  const b = ev.target.closest("[data-del]");
-  if(!b) return;
-  const arr = state.foodLog[diaryDate.value]||[];
-  arr.splice(+b.dataset.del,1);
-  if(!arr.length) delete state.foodLog[diaryDate.value];
-  save(); renderEntries();
+function autogrow(ta){
+  ta.style.height = "auto";
+  ta.style.height = (ta.scrollHeight+2)+"px";
+}
+function renderMeals(){
+  const ds = diaryDate.value;
+  const dow = new Date(ds+"T12:00:00").getDay();
+  const saved = state.meals[ds]||{};
+  const oggi = ds===todayISO() ? " · oggi" : "";
+  document.getElementById("mealsCard").innerHTML =
+    '<div class="eyebrow">Diario dei pasti</div>'+
+    '<h2>'+PIANO_GIORNI[dow].nome+" "+fmtShort(ds)+oggi+'</h2>'+
+    SLOTS.map(s=>
+      '<div class="meal-slot">'+
+        '<div class="meal-slot-head"><h3>'+s.nome+'</h3>'+
+        (s.when?'<span class="when">'+s.when+'</span>':"")+
+        '<span class="save-flash" id="flash-'+s.id+'">✓ salvato</span></div>'+
+        '<div class="plan-hint">'+s.hint(dow)+'</div>'+
+        '<textarea class="meal-input" data-slot="'+s.id+'" rows="2" placeholder="Scrivi cosa hai mangiato o cosa mangerai, con le grammature…">'+esc(saved[s.id]||"")+'</textarea>'+
+      '</div>'
+    ).join("");
+  document.querySelectorAll("#mealsCard textarea").forEach(autogrow);
+}
+const saveTimers = {};
+document.getElementById("mealsCard").addEventListener("input", ev=>{
+  const ta = ev.target.closest("textarea[data-slot]");
+  if(!ta) return;
+  autogrow(ta);
+  const ds = diaryDate.value, slot = ta.dataset.slot, val = ta.value;
+  clearTimeout(saveTimers[slot]);
+  saveTimers[slot] = setTimeout(()=>{
+    const day = state.meals[ds] = state.meals[ds]||{};
+    if(val.trim()) day[slot] = val.trim(); else delete day[slot];
+    if(!Object.keys(day).length) delete state.meals[ds];
+    save();
+    const f = document.getElementById("flash-"+slot);
+    if(f){ f.classList.add("show"); setTimeout(()=>f.classList.remove("show"), 1300); }
+    renderWeekStrip();
+  }, 450);
 });
-document.getElementById("addFoodBtn").addEventListener("click", ()=>{
-  const desc = document.getElementById("foodDesc").value.trim();
-  if(!desc){ document.getElementById("foodDesc").focus(); return; }
-  const grams = document.getElementById("foodGrams").value;
-  const meal = document.getElementById("mealType").value;
-  const now = new Date();
-  const time = (diaryDate.value===todayISO()) ? pad(now.getHours())+":"+pad(now.getMinutes()) : "";
-  (state.foodLog[diaryDate.value] = state.foodLog[diaryDate.value]||[]).push({meal, desc, grams, time});
-  save();
-  document.getElementById("foodDesc").value = "";
-  document.getElementById("foodGrams").value = "";
-  renderEntries();
+document.getElementById("weekStrip").addEventListener("click", ev=>{
+  const c = ev.target.closest("[data-day]");
+  if(!c) return;
+  diaryDate.value = c.dataset.day;
+  renderWeekStrip(); renderMeals(); renderWater();
+});
+document.getElementById("weekPrev").addEventListener("click", ()=>{
+  diaryDate.value = shiftDate(diaryDate.value, -7);
+  renderWeekStrip(); renderMeals(); renderWater();
+});
+document.getElementById("weekNext").addEventListener("click", ()=>{
+  diaryDate.value = shiftDate(diaryDate.value, 7);
+  renderWeekStrip(); renderMeals(); renderWater();
 });
 function renderWater(){
   const n = state.water[diaryDate.value]||0;
@@ -565,7 +715,7 @@ document.getElementById("waterPlus").addEventListener("click", ()=>{
 document.getElementById("waterMinus").addEventListener("click", ()=>{
   const n=(state.water[diaryDate.value]||0); if(n>0) state.water[diaryDate.value]=n-1; save(); renderWater();
 });
-diaryDate.addEventListener("change", ()=>{ renderDayPlan(); renderEntries(); renderWater(); });
+diaryDate.addEventListener("change", ()=>{ renderWeekStrip(); renderMeals(); renderWater(); });
 
 /* ================= TAB LIMITI ================= */
 function dots(c, max){
@@ -743,7 +893,7 @@ document.querySelectorAll("nav button").forEach(b=>{
 
 /* ================= AVVIO ================= */
 function renderAll(){
-  renderDayPlan(); renderEntries(); renderWater();
+  renderWeekStrip(); renderMeals(); renderWater();
   renderLimits(); renderPlanRef(); renderMeasures();
 }
 diaryDate.value = todayISO();
@@ -751,6 +901,8 @@ document.getElementById("mDate").value = todayISO();
 buildTimeline();
 updateStatus();
 setInterval(updateStatus, 30000);
+tickFast();
+setInterval(tickFast, 1000);
 renderAll();
 
 /* PWA: service worker per l'uso offline */
