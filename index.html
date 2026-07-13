@@ -175,6 +175,33 @@ textarea.meal-input{resize:none; min-height:54px; overflow:hidden; line-height:1
 .phase-eat .ring-fg{stroke:var(--green);}
 .fast-actions{margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;}
 
+/* ---------- valutazione pasti ---------- */
+.rate-row{display:flex; gap:8px; margin-top:8px;}
+.rate-btn{
+  border:1.5px solid var(--line); background:#FDFDFB; color:var(--muted);
+  border-radius:999px; padding:5px 13px; font-size:.78rem; font-weight:700; cursor:pointer;
+}
+.rate-btn.ok.active{background:var(--green); border-color:var(--green); color:#fff;}
+.rate-btn.no.active{background:var(--red); border-color:var(--red); color:#fff;}
+.meal-slot.rated-ok textarea{background:#E7F3DC; border-color:var(--leaf);}
+.meal-slot.rated-no textarea{background:#FAECE7; border-color:#DFA99C;}
+
+/* ---------- pagella settimanale ---------- */
+.score-wrap{display:flex; align-items:center; gap:18px;}
+.score-big{font-family:var(--display); font-size:2.7rem; font-weight:700; line-height:1; flex:none;}
+.score-big span{font-size:1.05rem; color:var(--muted); font-family:var(--body); font-weight:600;}
+.score-good{color:var(--green);}
+.score-mid{color:var(--amber);}
+.score-bad{color:var(--red);}
+.score-detail{flex:1; min-width:0;}
+.score-bar{height:10px; background:#EDF1E8; border-radius:999px; overflow:hidden; margin:7px 0 5px; display:flex;}
+.score-bar i{display:block; height:100%;}
+.score-bar .b-ok{background:var(--green);}
+.score-bar .b-no{background:var(--red);}
+.score-hist{margin-top:12px; border-top:1px solid var(--line); padding-top:9px; font-size:.84rem;}
+.score-hist > div{display:flex; justify-content:space-between; padding:3px 0;}
+.score-hist b{font-variant-numeric:tabular-nums;}
+
 /* ---------- limiti ---------- */
 .limit-item{
   border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin-bottom:10px; background:var(--card);
@@ -297,6 +324,7 @@ nav button.active{color:var(--green-deep); border-top-color:var(--green);}
 
 <!-- ============ LIMITI ============ -->
 <section class="tab" id="tab-limiti">
+  <div class="card" id="scoreCard"></div>
   <div class="banner"><b id="weekLabel"></b><br>Quando raggiungi il numero massimo di volte, l'alimento resta bloccato fino a lunedì. I conteggi ripartono da zero a inizio settimana.</div>
   <div id="limitsList"></div>
 
@@ -462,12 +490,13 @@ function load(){
           if(Object.keys(grp).length) s.meals[d] = grp;
         }
       }
+      if(!s.mealOk) s.mealOk = {};
       return s;
     }
   }catch(e){}
   return {
     settings:{altezza:1.68},
-    meals:{}, foodLog:{}, water:{}, limits:{}, goals:{},
+    meals:{}, mealOk:{}, foodLog:{}, water:{}, limits:{}, goals:{},
     measures:[{date:"2026-07-09", peso:96.1, cv:109.5, co:123, cf:115, cc:40}]
   };
 }
@@ -624,10 +653,10 @@ document.getElementById("fastCard").addEventListener("click", ev=>{
 const diaryDate = document.getElementById("diaryDate");
 const DAY_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
 const SLOTS = [
-  {id:"pranzo",   nome:"Pranzo",   when:"14:00–15:30", hint:d=>PIANO_GIORNI[d].pranzo+" — oppure pasto sostitutivo (whey/barretta)."},
-  {id:"spuntino", nome:"Spuntino", when:"17:00–19:00", hint:d=>"Uno dalla lista spuntini (vedi «Piano»). Obbligatorio se a pranzo hai usato il sostitutivo."},
-  {id:"cena",     nome:"Cena",     when:"20:30–21:30", hint:d=>PIANO_GIORNI[d].cena},
-  {id:"altro",    nome:"Note / fuori pasto", when:"", hint:d=>"Extra, sgarri, com'è andato il digiuno…"}
+  {id:"pranzo",   nome:"Pranzo",   when:"14:00–15:30", rate:true,  hint:d=>PIANO_GIORNI[d].pranzo+" — oppure pasto sostitutivo (whey/barretta)."},
+  {id:"spuntino", nome:"Spuntino", when:"17:00–19:00", rate:true,  hint:d=>"Uno dalla lista spuntini (vedi «Piano»). Obbligatorio se a pranzo hai usato il sostitutivo."},
+  {id:"cena",     nome:"Cena",     when:"20:30–21:30", rate:true,  hint:d=>PIANO_GIORNI[d].cena},
+  {id:"altro",    nome:"Note / fuori pasto", when:"", rate:false, hint:d=>"Extra, sgarri, com'è andato il digiuno…"}
 ];
 function dayHasText(dateStr){
   const m = state.meals[dateStr];
@@ -657,20 +686,37 @@ function renderMeals(){
   const ds = diaryDate.value;
   const dow = new Date(ds+"T12:00:00").getDay();
   const saved = state.meals[ds]||{};
+  const ratings = state.mealOk[ds]||{};
   const oggi = ds===todayISO() ? " · oggi" : "";
   document.getElementById("mealsCard").innerHTML =
     '<div class="eyebrow">Diario dei pasti</div>'+
     '<h2>'+PIANO_GIORNI[dow].nome+" "+fmtShort(ds)+oggi+'</h2>'+
-    SLOTS.map(s=>
-      '<div class="meal-slot">'+
+    SLOTS.map(s=>{
+      const v = ratings[s.id];
+      const cls = v===1 ? " rated-ok" : (v===0 ? " rated-no" : "");
+      return '<div class="meal-slot'+cls+'">'+
         '<div class="meal-slot-head"><h3>'+s.nome+'</h3>'+
         (s.when?'<span class="when">'+s.when+'</span>':"")+
         '<span class="save-flash" id="flash-'+s.id+'">✓ salvato</span></div>'+
         '<div class="plan-hint">'+s.hint(dow)+'</div>'+
         '<textarea class="meal-input" data-slot="'+s.id+'" rows="2" placeholder="Scrivi cosa hai mangiato o cosa mangerai, con le grammature…">'+esc(saved[s.id]||"")+'</textarea>'+
-      '</div>'
-    ).join("");
+        (s.rate ? '<div class="rate-row">'+
+          '<button type="button" class="rate-btn ok'+(v===1?" active":"")+'" data-rate="1" data-slot="'+s.id+'">✓ In linea col piano</button>'+
+          '<button type="button" class="rate-btn no'+(v===0?" active":"")+'" data-rate="0" data-slot="'+s.id+'">✗ Fuori piano</button>'+
+        '</div>' : "")+
+      '</div>';
+    }).join("");
   document.querySelectorAll("#mealsCard textarea").forEach(autogrow);
+}
+function flushMealInputs(){
+  const ds = diaryDate.value;
+  Object.keys(saveTimers).forEach(k=>clearTimeout(saveTimers[k]));
+  document.querySelectorAll("#mealsCard textarea[data-slot]").forEach(ta=>{
+    const day = state.meals[ds] = state.meals[ds]||{};
+    const val = ta.value.trim();
+    if(val) day[ta.dataset.slot] = val; else delete day[ta.dataset.slot];
+    if(!Object.keys(day).length) delete state.meals[ds];
+  });
 }
 const saveTimers = {};
 document.getElementById("mealsCard").addEventListener("input", ev=>{
@@ -688,6 +734,21 @@ document.getElementById("mealsCard").addEventListener("input", ev=>{
     if(f){ f.classList.add("show"); setTimeout(()=>f.classList.remove("show"), 1300); }
     renderWeekStrip();
   }, 450);
+});
+document.getElementById("mealsCard").addEventListener("click", ev=>{
+  const b = ev.target.closest("[data-rate]");
+  if(!b) return;
+  const ds = diaryDate.value, slot = b.dataset.slot, val = +b.dataset.rate;
+  flushMealInputs();
+  if(!(state.meals[ds] && state.meals[ds][slot])){
+    alert("Scrivi prima cosa hai mangiato in questo pasto, poi valutalo.");
+    save(); renderMeals(); return;
+  }
+  const day = state.mealOk[ds] = state.mealOk[ds]||{};
+  if(day[slot]===val) delete day[slot]; else day[slot] = val;
+  if(!Object.keys(day).length) delete state.mealOk[ds];
+  save();
+  renderMeals(); renderWeekStrip(); renderScore();
 });
 document.getElementById("weekStrip").addEventListener("click", ev=>{
   const c = ev.target.closest("[data-day]");
@@ -716,6 +777,55 @@ document.getElementById("waterMinus").addEventListener("click", ()=>{
   const n=(state.water[diaryDate.value]||0); if(n>0) state.water[diaryDate.value]=n-1; save(); renderWater();
 });
 diaryDate.addEventListener("change", ()=>{ renderWeekStrip(); renderMeals(); renderWater(); });
+
+/* ================= PAGELLA SETTIMANALE ================= */
+const RATE_SLOTS = ["pranzo","spuntino","cena"];
+function weekScore(mondayISO){
+  let ok = 0, no = 0;
+  for(let i=0;i<7;i++){
+    const r = state.mealOk[shiftDate(mondayISO, i)]||{};
+    RATE_SLOTS.forEach(s=>{
+      if(r[s]===1) ok++;
+      else if(r[s]===0) no++;
+    });
+  }
+  const rated = ok+no;
+  return {ok, no, rated, total:21, score: rated ? Math.max(1, Math.round(ok/rated*10)) : null};
+}
+function scoreClass(sc){ return sc>=8 ? "score-good" : (sc>=5 ? "score-mid" : "score-bad"); }
+function weekRangeLabel(mondayISO){
+  return fmtShort(mondayISO)+" – "+fmtShort(shiftDate(mondayISO,6));
+}
+function renderScore(){
+  const wk = weekKeyNow();
+  const w = weekScore(wk);
+  let big, detail;
+  if(w.score===null){
+    big = '<div class="score-big" style="color:var(--muted)">–<span>/10</span></div>';
+    detail = '<p class="muted">Ancora nessun pasto valutato questa settimana. Nella scheda «Oggi», dopo aver scritto un pasto, tocca «✓ In linea col piano» o «✗ Fuori piano»: il voto si costruisce da solo.</p>';
+  } else {
+    const pctOk = (w.ok/w.total*100).toFixed(0), pctNo = (w.no/w.total*100).toFixed(0);
+    big = '<div class="score-big '+scoreClass(w.score)+'">'+w.score+'<span>/10</span></div>';
+    detail = '<div class="score-detail">'+
+      '<div class="score-bar"><i class="b-ok" style="width:'+pctOk+'%"></i><i class="b-no" style="width:'+pctNo+'%"></i></div>'+
+      '<div class="muted">'+w.ok+' in linea · '+w.no+' fuori piano · '+(w.total-w.rated)+' da valutare su '+w.total+' pasti</div>'+
+      '</div>';
+  }
+  // storico settimane precedenti
+  const mondays = new Set();
+  Object.keys(state.mealOk).forEach(d=>{ const m = mondayOf(d); if(m!==wk) mondays.add(m); });
+  const hist = [...mondays].sort().reverse().slice(0,6).map(m=>{
+    const s = weekScore(m);
+    if(s.score===null) return "";
+    return '<div><span>Settimana '+weekRangeLabel(m)+'</span><b class="'+scoreClass(s.score)+'">'+s.score+'/10</b></div>';
+  }).join("");
+  document.getElementById("scoreCard").innerHTML =
+    '<div class="eyebrow">Pagella della settimana</div>'+
+    '<div class="score-wrap">'+big+(w.score===null?'':detail)+'</div>'+
+    (w.score===null?detail:'')+
+    '<p class="muted" style="margin-top:8px">Suggerimento: il pasto libero del sabato fa parte del piano — se rispetti le sue regole, spuntalo pure verde.</p>'+
+    (hist?'<div class="score-hist">'+hist+'</div>':"");
+}
 
 /* ================= TAB LIMITI ================= */
 function dots(c, max){
@@ -894,7 +1004,7 @@ document.querySelectorAll("nav button").forEach(b=>{
 /* ================= AVVIO ================= */
 function renderAll(){
   renderWeekStrip(); renderMeals(); renderWater();
-  renderLimits(); renderPlanRef(); renderMeasures();
+  renderScore(); renderLimits(); renderPlanRef(); renderMeasures();
 }
 diaryDate.value = todayISO();
 document.getElementById("mDate").value = todayISO();
