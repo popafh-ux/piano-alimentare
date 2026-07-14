@@ -1,6 +1,6 @@
 /* Se in futuro aggiorni l'app, cambia "piano-v1" in "piano-v2" (e così via):
    è questo che dice ai telefoni di scaricare la versione nuova. */
-const CACHE = "piano-v6";
+const CACHE = "piano-v8";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {

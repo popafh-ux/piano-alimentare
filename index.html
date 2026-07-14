@@ -43,28 +43,6 @@ header .sub{font-size:.8rem; opacity:.85; margin-top:2px;}
 .status-pill .dot{width:9px; height:9px; border-radius:50%; background:var(--leaf); flex:none;}
 .status-pill.fasting .dot{background:#E8C15A;}
 
-/* ---------- timeline (signature) ---------- */
-.timeline-wrap{background:var(--green-deep); padding:0 16px 18px;}
-.timeline{
-  position:relative; height:26px; border-radius:8px; overflow:hidden;
-  background:#1B3D2C; box-shadow:inset 0 1px 3px rgba(0,0,0,.35);
-}
-.timeline .seg{position:absolute; top:0; bottom:0;}
-.seg-fast{background:repeating-linear-gradient(135deg,#2A4A38 0 6px,#264433 6px 12px);}
-.seg-window{background:#3E7A52;}
-.seg-meal{background:#8FB55C;}
-.timeline .now{
-  position:absolute; top:-3px; bottom:-3px; width:3px; background:#FFE9A8;
-  border-radius:2px; box-shadow:0 0 6px rgba(255,233,168,.9);
-}
-.timeline-labels{
-  display:flex; justify-content:space-between; font-size:.68rem; margin-top:5px;
-  color:rgba(244,248,238,.75); font-variant-numeric:tabular-nums;
-}
-.timeline-legend{display:flex; gap:14px; margin-top:7px; font-size:.7rem; color:rgba(244,248,238,.85); flex-wrap:wrap;}
-.timeline-legend span{display:inline-flex; align-items:center; gap:5px;}
-.timeline-legend i{width:10px; height:10px; border-radius:3px; display:inline-block;}
-
 /* ---------- layout ---------- */
 main{max-width:640px; margin:0 auto; padding:16px;}
 .tab{display:none;}
@@ -203,11 +181,6 @@ textarea.meal-input{resize:none; min-height:54px; overflow:hidden; line-height:1
 .score-hist b{font-variant-numeric:tabular-nums;}
 
 /* ---------- valutazione AI ---------- */
-.ai-box{margin-top:12px; background:#F1F5EC; border:1px solid var(--line); border-radius:12px; padding:12px 14px; font-size:.86rem;}
-.ai-box .row{display:flex; gap:8px; padding:3px 0;}
-.ai-box .row b{flex:0 0 72px; color:var(--green-deep);}
-.ai-comment{margin-top:8px; font-style:italic;}
-
 /* ---------- rilevamento limiti ---------- */
 #limitDetectCard{background:var(--amber-soft); border-color:#EAD8B4;}
 .detect-row{display:flex; align-items:center; gap:10px; padding:7px 0; border-top:1px dashed #E4D3AE;}
@@ -275,12 +248,14 @@ nav button{
 nav button.active{color:var(--green-deep); border-top-color:var(--green);}
 
 @media print{
-  header, .timeline-wrap, nav, .no-print{display:none !important;}
-  body{background:#fff; padding:0;}
+  header, nav, .no-print{display:none !important;}
+  body{background:#fff; padding:0; color:#000;}
   .tab{display:none !important;}
-  #tab-misure{display:block !important;}
-  .card{border:none; padding:0;}
-  table{font-size:10pt;}
+  main{max-width:none;}
+  /* modalità 1: tabella misure (pulsante Stampa) */
+  body.print-misure #tab-misure{display:block !important;}
+  body.print-misure .card{border:none; padding:0;}
+  body.print-misure table{font-size:10pt;}
 }
 @media (prefers-reduced-motion: reduce){
   *{transition:none !important;}
@@ -291,19 +266,8 @@ nav button.active{color:var(--green-deep); border-top-color:var(--green);}
 
 <header>
   <h1>Il mio piano 16:8</h1>
-  <div class="sub">Ambulatorio Obesità · Casa della Salute Ceccano</div>
   <div class="status-pill" id="statusPill"><span class="dot"></span><span id="statusText">…</span></div>
 </header>
-
-<div class="timeline-wrap">
-  <div class="timeline" id="timeline"></div>
-  <div class="timeline-labels"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
-  <div class="timeline-legend">
-    <span><i style="background:repeating-linear-gradient(135deg,#2A4A38 0 4px,#264433 4px 8px)"></i>Digiuno</span>
-    <span><i style="background:#3E7A52"></i>Finestra alimentare</span>
-    <span><i style="background:#8FB55C"></i>Pasti (14–15:30 · 17–19 · 20:30–21:30)</span>
-  </div>
-</div>
 
 <main>
 
@@ -334,6 +298,12 @@ nav button.active{color:var(--green-deep); border-top-color:var(--green);}
     </div>
     <div class="water-bar"><i id="waterBar" style="width:0%"></i></div>
     <p class="muted" style="margin-top:6px">Obiettivo: 1,5–2 litri al giorno (bicchiere da 200 ml), da bere gradualmente.</p>
+  </div>
+
+  <div class="card">
+    <h2>Valutazione della settimana</h2>
+    <p class="muted" style="margin-bottom:10px">Genera un file PDF scaricabile con il riepilogo dei pasti della settimana in corso, da lunedì a domenica. I giorni non ancora arrivati restano vuoti.</p>
+    <button class="btn btn-full" id="valutaBtn">Valuta</button>
   </div>
 </section>
 
@@ -389,11 +359,7 @@ nav button.active{color:var(--green-deep); border-top-color:var(--green);}
       <div><button class="btn secondary btn-full" id="exportBtn">Esporta backup</button></div>
       <div><button class="btn secondary btn-full" id="importBtn">Importa backup</button></div>
     </div>
-    <div class="form-row">
-      <div><button class="btn secondary btn-full" id="printBtn">Stampa la tabella per la visita</button></div>
-      <div><button class="btn secondary btn-full" id="aiKeyBtn">Chiave AI di Claude</button></div>
-    </div>
-    <p class="muted">La chiave AI resta solo su questo telefono e NON viene inclusa nel backup: non caricarla mai su GitHub.</p>
+    <button class="btn secondary btn-full" id="printBtn">Stampa la tabella per la visita</button>
     <input type="file" id="importFile" accept=".json" style="display:none">
   </div>
 </section>
@@ -544,28 +510,10 @@ function fmtShort(dateStr){
 }
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 
-/* ================= TIMELINE + STATO DIGIUNO ================= */
-function pct(min){return (min/1440*100).toFixed(3)+"%";}
-function seg(cls, fromMin, toMin){
-  return '<div class="seg '+cls+'" style="left:'+pct(fromMin)+'; width:'+pct(toMin-fromMin)+'"></div>';
-}
-function buildTimeline(){
-  const t = document.getElementById("timeline");
-  let h = "";
-  h += seg("seg-fast", 0, 840);            // 00:00–14:00 digiuno
-  h += seg("seg-window", 840, 1290);       // 14:00–21:30 finestra
-  h += seg("seg-meal", 840, 930);          // pranzo 14–15:30
-  h += seg("seg-meal", 1020, 1140);        // spuntino 17–19
-  h += seg("seg-meal", 1230, 1290);        // cena 20:30–21:30
-  h += seg("seg-fast", 1290, 1440);        // 21:30–24 digiuno
-  h += '<div class="now" id="nowMarker"></div>';
-  t.innerHTML = h;
-}
+/* ================= STATO DIGIUNO (pillola) ================= */
 function updateStatus(){
   const now = new Date();
   const m = now.getHours()*60 + now.getMinutes();
-  const marker = document.getElementById("nowMarker");
-  if(marker) marker.style.left = pct(m);
   const pill = document.getElementById("statusPill");
   const txt = document.getElementById("statusText");
   let fasting = false, msg = "";
@@ -581,8 +529,6 @@ function updateStatus(){
   else { fasting = true; msg = "Digiuno fino alle 14:00 di domani · solo acqua, tè, tisane, caffè amaro"; }
   pill.classList.toggle("fasting", fasting);
   txt.textContent = msg;
-  const hint = document.getElementById("timingHint");
-  if(hint) hint.textContent = fasting ? "⚠️ In questo orario il piano prevede il digiuno: solo liquidi senza calorie." : "Sei nella finestra alimentare (14:00–21:30).";
 }
 
 /* ================= TIMER 16:8 ================= */
@@ -726,27 +672,8 @@ function renderMeals(){
           '<button type="button" class="rate-btn no'+(v===0?" active":"")+'" data-rate="0" data-slot="'+s.id+'">✗ Fuori piano</button>'+
         '</div>' : "")+
       '</div>';
-    }).join("")+
-    '<div style="margin-top:14px"><button class="btn btn-full" id="aiEvalBtn">✨ Fai valutare i pasti a Claude</button></div>'+
-    aiBoxHTML(ds);
+    }).join("");
   document.querySelectorAll("#mealsCard textarea").forEach(autogrow);
-}
-const AI_ICONS = {ok:"🟢", no:"🔴", dubbio:"🟡"};
-function aiBoxHTML(ds){
-  const n = state.aiNotes[ds];
-  if(!n || !n.res) return "";
-  const r = n.res;
-  const nomi = {pranzo:"Pranzo", spuntino:"Spuntino", cena:"Cena"};
-  let rows = "";
-  RATE_SLOTS.forEach(s=>{
-    if(r[s] && r[s].verdetto){
-      rows += '<div class="row"><b>'+nomi[s]+'</b><span>'+(AI_ICONS[r[s].verdetto]||"")+" "+esc(r[s].motivo||"")+'</span></div>';
-    }
-  });
-  const q = new Date(n.ts);
-  return '<div class="ai-box"><div class="eyebrow">Valutazione di Claude</div>'+rows+
-    (r.commento?'<div class="ai-comment">'+esc(r.commento)+'</div>':"")+
-    '<div class="muted" style="margin-top:6px; font-size:.74rem">Valutato il '+q.toLocaleDateString("it-IT")+' alle '+pad(q.getHours())+':'+pad(q.getMinutes())+' · 🟡 = dubbio, decidi tu con i pulsanti</div></div>';
 }
 function flushMealInputs(){
   const ds = diaryDate.value;
@@ -827,7 +754,6 @@ document.getElementById("limitDetectCard").addEventListener("click", ev=>{
   }
 });
 document.getElementById("mealsCard").addEventListener("click", ev=>{
-  if(ev.target.closest("#aiEvalBtn")){ aiEvaluate(); return; }
   const b = ev.target.closest("[data-rate]");
   if(!b) return;
   const ds = diaryDate.value, slot = b.dataset.slot, val = +b.dataset.rate;
@@ -869,95 +795,6 @@ document.getElementById("waterMinus").addEventListener("click", ()=>{
   const n=(state.water[diaryDate.value]||0); if(n>0) state.water[diaryDate.value]=n-1; save(); renderWater();
 });
 diaryDate.addEventListener("change", ()=>{ renderWeekStrip(); renderMeals(); renderWater(); renderLimitDetect(); });
-
-/* ================= VALUTAZIONE AI (Claude) ================= */
-const AI_KEY_STORE = "pianoClaudeKey";
-function configureAIKey(){
-  const cur = localStorage.getItem(AI_KEY_STORE);
-  const msg = cur
-    ? "Chiave attuale: "+cur.slice(0,12)+"…\n\nIncolla una nuova chiave per sostituirla, oppure scrivi RIMUOVI per cancellarla:"
-    : "Incolla la tua chiave API di Anthropic (inizia con sk-ant-).\nLa chiave resta salvata SOLO su questo telefono:";
-  const v = prompt(msg);
-  if(v===null) return;
-  const t = v.trim();
-  if(t.toUpperCase()==="RIMUOVI"){ localStorage.removeItem(AI_KEY_STORE); alert("Chiave rimossa."); return; }
-  if(!t) return;
-  if(!t.startsWith("sk-ant")){ alert("Non sembra una chiave valida: deve iniziare con sk-ant-"); return; }
-  localStorage.setItem(AI_KEY_STORE, t);
-  alert("Chiave salvata ✔ Ora puoi usare «Fai valutare i pasti a Claude».");
-}
-function buildAiPrompt(ds){
-  const dow = new Date(ds+"T12:00:00").getDay();
-  const p = PIANO_GIORNI[dow];
-  const m = state.meals[ds]||{};
-  const val = s => m[s] ? '"'+m[s].replace(/"/g,"'")+'"' : "NON COMPILATO";
-  return "Sei un assistente nutrizionale. Valuta l'aderenza dei pasti registrati dall'utente al suo piano nutrizionale prescritto dall'ambulatorio. Giorno della settimana: "+p.nome+".\n\n"+
-  "COSA PREVEDE IL PIANO PER QUESTO GIORNO:\n"+
-  "- Pranzo: "+p.pranzo+"\n"+
-  "- Spuntino (17-19), uno tra: "+SPUNTINI.join(" | ")+"\n"+
-  "- Cena: "+p.cena+"\n\n"+
-  "REGOLE GENERALI: verdure devono riempire metà piatto nei pasti completi; 1 cucchiaio (10 g) di olio EVO a pasto; pane 80 g preferibilmente integrale o alternative equivalenti (tra cui 2 patate ~300 g max 2 volte/settimana, 1 piadina max 1 volta/settimana, 1 frutto max 150 g al posto del pane); a pranzo è sempre ammesso un pasto sostitutivo (whey protein 25-30 g o barretta sostitutiva); vietati dolci, zucchero, merendine e bevande zuccherate (zero zuccheri max 1-2 volte/settimana); il pasto libero è 1 volta a settimana (di norma sabato a cena): se questo pasto è il pasto libero e rispetta le sue regole (niente pasta+pane insieme, niente frutta+dolce, meglio verdure prima), il verdetto è ok.\n\n"+
-  "PASTI REGISTRATI:\n"+
-  "Pranzo: "+val("pranzo")+"\n"+
-  "Spuntino: "+val("spuntino")+"\n"+
-  "Cena: "+val("cena")+"\n\n"+
-  "Rispondi SOLO con un oggetto JSON valido, senza alcun testo prima o dopo e senza blocchi markdown, esattamente in questo formato:\n"+
-  '{"pranzo":{"verdetto":"ok|no|dubbio","motivo":"max 15 parole in italiano"},"spuntino":{"verdetto":"...","motivo":"..."},"cena":{"verdetto":"...","motivo":"..."},"commento":"1-2 frasi complessive in italiano, tono concreto e incoraggiante"}\n'+
-  'Criteri: "ok" = rispetta il piano (sii ragionevole: piccole imprecisioni di grammatura non contano); "no" = chiaramente fuori piano; "dubbio" = informazioni insufficienti per decidere. Per i pasti NON COMPILATI usa verdetto "dubbio" e motivo "non compilato".';
-}
-async function aiEvaluate(){
-  const key = localStorage.getItem(AI_KEY_STORE);
-  if(!key){ configureAIKey(); return; }
-  flushMealInputs(); save();
-  const ds = diaryDate.value;
-  const m = state.meals[ds]||{};
-  if(!m.pranzo && !m.spuntino && !m.cena){
-    alert("Scrivi prima almeno un pasto in questo giorno."); return;
-  }
-  const btn = document.getElementById("aiEvalBtn");
-  btn.disabled = true; btn.textContent = "Claude sta valutando…";
-  try{
-    const resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method:"POST",
-      headers:{
-        "content-type":"application/json",
-        "x-api-key": key,
-        "anthropic-version":"2023-06-01",
-        "anthropic-dangerous-direct-browser-access":"true"
-      },
-      body: JSON.stringify({
-        model:"claude-haiku-4-5-20251001",
-        max_tokens: 600,
-        messages:[{role:"user", content: buildAiPrompt(ds)}]
-      })
-    });
-    const data = await resp.json();
-    if(!resp.ok){
-      const em = (data && data.error && data.error.message) || ("errore "+resp.status);
-      if(resp.status===401) throw new Error("Chiave API non valida o disattivata. Controlla la chiave (pulsante «Chiave AI» nella scheda Misure).");
-      if(resp.status===429) throw new Error("Troppe richieste in poco tempo: riprova tra qualche secondo.");
-      throw new Error(em);
-    }
-    const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
-    const a = text.indexOf("{"), z = text.lastIndexOf("}");
-    if(a<0 || z<0) throw new Error("Risposta in formato inatteso, riprova.");
-    const res = JSON.parse(text.slice(a, z+1));
-    // applica i verdetti (dubbio non tocca la tua valutazione)
-    const day = state.mealOk[ds] = state.mealOk[ds]||{};
-    RATE_SLOTS.forEach(s=>{
-      if(!m[s] || !res[s]) return;
-      if(res[s].verdetto==="ok") day[s]=1;
-      else if(res[s].verdetto==="no") day[s]=0;
-    });
-    if(!Object.keys(day).length) delete state.mealOk[ds];
-    state.aiNotes[ds] = {res, ts: Date.now()};
-    save();
-    renderMeals(); renderWeekStrip(); renderScore();
-  }catch(e){
-    alert("Valutazione non riuscita: "+(e && e.message ? e.message : "controlla la connessione internet."));
-    renderMeals();
-  }
-}
 
 /* ================= PAGELLA SETTIMANALE ================= */
 const RATE_SLOTS = ["pranzo","spuntino","cena"];
@@ -1171,8 +1008,155 @@ document.getElementById("importFile").addEventListener("change", ev=>{
   r.readAsText(f);
   ev.target.value = "";
 });
-document.getElementById("printBtn").addEventListener("click", ()=>window.print());
-document.getElementById("aiKeyBtn").addEventListener("click", configureAIKey);
+function printWithMode(mode){
+  document.body.classList.add(mode);
+  const cleanup = ()=>{ document.body.classList.remove(mode); window.removeEventListener("afterprint", cleanup); };
+  window.addEventListener("afterprint", cleanup);
+  window.print();
+  // fallback per browser che non emettono afterprint
+  setTimeout(cleanup, 1500);
+}
+document.getElementById("printBtn").addEventListener("click", ()=>printWithMode("print-misure"));
+
+/* ---- Valuta: PDF scaricabile del riepilogo settimanale ---- */
+const DAY_FULL = ["Domenica","Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato"];
+const SLOT_NAMES = {pranzo:"Pranzo", spuntino:"Spuntino", cena:"Cena", altro:"Note"};
+
+// Codifica un testo in stringa PDF (byte singoli, WinAnsi) con escape.
+function pdfEsc(s){
+  const map={0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2013:0x96,0x2014:0x97,0x2026:0x85,0x2022:0x95,0x20AC:0x80};
+  let out="";
+  for(const ch of String(s)){
+    const code=ch.codePointAt(0);
+    let byte;
+    if(code<0x80) byte=code;
+    else if(map[code]!==undefined) byte=map[code];
+    else if(code>=0xA0 && code<=0xFF) byte=code; // à è é ì ò ù ° · ecc. (Latin-1)
+    else byte=0x3F; // carattere non rappresentabile -> '?'
+    if(byte<0x20) continue; // scarta caratteri di controllo (incl. newline: le righe sono già separate)
+    const c=String.fromCharCode(byte);
+    out += (c==="("||c===")"||c==="\\") ? "\\"+c : c;
+  }
+  return out;
+}
+// Larghezza approssimata dei glifi Helvetica (frazione dell'em) per l'a capo.
+const _NARROW=" ijltfI.,:;'!|()[]{}/\\", _WIDE="mMWw@—–";
+function _frac(ch){
+  if(_NARROW.indexOf(ch)>=0) return 0.30;
+  if(_WIDE.indexOf(ch)>=0) return 0.80;
+  if(ch>="A"&&ch<="Z") return 0.68;
+  return 0.50;
+}
+function _measure(s,size){ let w=0; for(const c of s) w+=_frac(c)*size; return w; }
+function _wrap(text,size,maxW){
+  const words=String(text).split(/\s+/).filter(Boolean);
+  const lines=[]; let cur="";
+  for(let word of words){
+    while(_measure(word,size)>maxW){
+      let i=1; while(i<word.length && _measure(word.slice(0,i+1),size)<=maxW) i++;
+      if(cur){ lines.push(cur); cur=""; }
+      lines.push(word.slice(0,i)); word=word.slice(i);
+    }
+    const trial=cur?cur+" "+word:word;
+    if(_measure(trial,size)<=maxW) cur=trial;
+    else { if(cur) lines.push(cur); cur=word; }
+  }
+  if(cur) lines.push(cur);
+  return lines.length?lines:[""];
+}
+function buildWeekPdfString(){
+  const PW=595.28, PH=841.89, ML=48, MR=48, MT=54, MB=48;
+  const usable=PW-ML-MR;
+  const pages=[]; let ops=null, y=0;
+  function startPage(){ ops=[]; pages.push(ops); y=PH-MT; }
+  function line(text,size,font,x,leading){
+    if(y-leading<MB) startPage();
+    ops.push("BT /"+font+" "+size+" Tf "+x.toFixed(2)+" "+y.toFixed(2)+" Td ("+pdfEsc(text)+") Tj ET");
+    y-=leading;
+  }
+  function para(text,size,font,x,leading,maxW){ _wrap(text,size,maxW).forEach(l=>line(l,size,font,x,leading)); }
+  function gap(h){ y-=h; }
+  startPage();
+
+  const mon=mondayOf(todayISO()), today=todayISO();
+  line("Il mio piano 16:8 — Riepilogo settimanale", 16, "F2", ML, 21);
+  line("Settimana "+fmtIT(mon)+" – "+fmtIT(shiftDate(mon,6)), 10.5, "F1", ML, 15);
+  line("Generato il "+fmtIT(today), 9, "F1", ML, 18);
+
+  for(let i=0;i<7;i++){
+    const ds=shiftDate(mon,i), dow=new Date(ds+"T12:00:00").getDay();
+    if(y-46<MB) startPage();
+    line(DAY_FULL[dow]+"   ·   "+fmtIT(ds), 12.5, "F2", ML, 17);
+    if(ds>today){
+      line("(giorno non ancora arrivato)", 10, "F1", ML+12, 15);
+    } else {
+      const meals=state.meals[ds]||{}, ratings=state.mealOk[ds]||{};
+      let any=false;
+      ["pranzo","spuntino","cena","altro"].forEach(slot=>{
+        const txt=meals[slot];
+        if(!txt) return;
+        any=true;
+        let sfx="";
+        if(slot!=="altro" && ratings[slot]===1) sfx="  (in linea)";
+        else if(slot!=="altro" && ratings[slot]===0) sfx="  (fuori piano)";
+        const clean=String(txt).replace(/\s*\n\s*/g," / ");
+        para(SLOT_NAMES[slot]+": "+clean+sfx, 10, "F1", ML+12, 14, usable-12);
+      });
+      if(!any) line("nessun pasto registrato", 10, "F1", ML+12, 15);
+      const wct=state.water[ds]||0;
+      if(wct) line("Acqua: "+(wct*0.2).toFixed(1).replace(".",",")+" L", 9, "F1", ML+12, 14);
+    }
+    gap(8);
+  }
+
+  if(y-70<MB) startPage(); else gap(4);
+  const counts=state.limits[mon]||{}, sc=weekScore(mon);
+  const used=LIMITI.filter(it=>(counts[it.id]||0)>0).map(it=>it.label+" "+counts[it.id]+"/"+it.max);
+  const gcw=(state.goals[mon]||{}).camminata||0;
+  line("Riepilogo settimana", 12, "F2", ML, 17);
+  para("Pagella: "+(sc.score!==null? sc.score+"/10 ("+sc.ok+" in linea, "+sc.no+" fuori piano su "+sc.rated+" valutati)" : "nessun pasto valutato"), 10, "F1", ML+12, 14, usable-12);
+  para("Alimenti a frequenza limitata usati: "+(used.length?used.join("; "):"nessuno"), 10, "F1", ML+12, 14, usable-12);
+  para("Camminate: "+gcw+"/3", 10, "F1", ML+12, 14, usable-12);
+
+  // ---- assemblaggio oggetti PDF ----
+  const N=pages.length, contentStart=5, pageStart=5+N;
+  const parts=[];
+  parts.push({num:1, body:"<< /Type /Catalog /Pages 2 0 R >>"});
+  const kids=[]; for(let i=0;i<N;i++) kids.push((pageStart+i)+" 0 R");
+  parts.push({num:2, body:"<< /Type /Pages /Kids ["+kids.join(" ")+"] /Count "+N+" /MediaBox [0 0 "+PW.toFixed(2)+" "+PH.toFixed(2)+"] >>"});
+  parts.push({num:3, body:"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"});
+  parts.push({num:4, body:"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>"});
+  for(let i=0;i<N;i++){
+    const stream=pages[i].join("\n");
+    parts.push({num:contentStart+i, body:"<< /Length "+stream.length+" >>\nstream\n"+stream+"\nendstream"});
+  }
+  for(let i=0;i<N;i++){
+    parts.push({num:pageStart+i, body:"<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents "+(contentStart+i)+" 0 R >>"});
+  }
+  parts.sort((a,b)=>a.num-b.num);
+  const maxNum=parts[parts.length-1].num;
+  let pdf="%PDF-1.4\n";
+  const offsets=new Array(maxNum+1).fill(0);
+  for(const p of parts){ offsets[p.num]=pdf.length; pdf+=p.num+" 0 obj\n"+p.body+"\nendobj\n"; }
+  const xref=pdf.length;
+  pdf+="xref\n0 "+(maxNum+1)+"\n0000000000 65535 f \n";
+  for(let n=1;n<=maxNum;n++) pdf+=String(offsets[n]).padStart(10,"0")+" 00000 n \n";
+  pdf+="trailer\n<< /Size "+(maxNum+1)+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF";
+  return {pdf, mon};
+}
+function downloadWeekPdf(){
+  flushMealInputs(); save();
+  const {pdf, mon}=buildWeekPdfString();
+  const bytes=new Uint8Array(pdf.length);
+  for(let i=0;i<pdf.length;i++) bytes[i]=pdf.charCodeAt(i)&0xff;
+  const blob=new Blob([bytes],{type:"application/pdf"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download="riepilogo-settimana-"+mon+".pdf";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 4000);
+}
+document.getElementById("valutaBtn").addEventListener("click", downloadWeekPdf);
 
 /* ================= NAVIGAZIONE ================= */
 document.querySelectorAll("nav button").forEach(b=>{
@@ -1190,7 +1174,6 @@ function renderAll(){
 }
 diaryDate.value = todayISO();
 document.getElementById("mDate").value = todayISO();
-buildTimeline();
 updateStatus();
 setInterval(updateStatus, 30000);
 tickFast();
