@@ -326,13 +326,7 @@ nav button.active{color:var(--green-deep); border-top-color:var(--green);}
 
 <!-- ============ MISURE ============ -->
 <section class="tab" id="tab-misure">
-  <div class="next-visit">
-    <b>Prossimo controllo</b>
-    <span>27/08/2026 ore 14:00 — porta con te questa tabella.<br>
-    📍 Casa della Salute, Via Borgo S. Lucia 52, Ceccano<br>
-    📞 0775 6262819 / 0775 6262820<br>
-    ✉️ centroobesitaceccano@gmail.com</span>
-  </div>
+  <div class="next-visit"><b>Prossimo controllo</b><span>27/08/2026 ore 14:00 — porta con te questa tabella. Dubbi: centroobesitaceccano@gmail.com</span></div>
 
   <div class="card no-print">
     <h2>Nuova misurazione</h2>
@@ -410,7 +404,7 @@ const LIMITI = [
   {id:"salmone", label:"Salmone affumicato (100 g)", max:1, note:"Conta come il pesce del pasto.", kw:["salmone"]},
   {id:"frutti_mare", label:"Crostacei, polpo, vongole", max:1, note:"Una sola volta a settimana.", kw:["gamber","polpo","vongole","cozze","calamar","seppie","seppia","scampi","crostace","moscardin","totani","gambon"]},
   {id:"bastoncini", label:"Bastoncini di pesce (3–4)", max:1, note:"Al forno o in friggitrice ad aria, solo con verdura: NO pane o altri carboidrati perché sono panati.", kw:["bastoncini"]},
-  {id:"riso_bianco", label:"Riso bianco", max:2, note:"Preferire basmati, integrale, venere, rosso, farro, orzo, quinoa.", kw:["riso bianco", "riso", "risotto"]},
+  {id:"riso_bianco", label:"Riso bianco", max:2, note:"Preferire basmati, integrale, venere, rosso, farro, orzo, quinoa.", kw:["riso bianco"]},
   {id:"stagionati", label:"Formaggi stagionati 50 g come pasto", max:1, note:"Grana, parmigiano ecc. al posto del formaggio fresco."},
   {id:"scamorza", label:"Scamorza / caciocavallo (70 g)", max:1, note:"Al posto dei 100 g di formaggio fresco.", kw:["scamorza","caciocavallo"]},
   {id:"snack_crackers", label:"Spuntino: crackers + 30 g crudo + 10 olive", max:2, note:""},
@@ -612,10 +606,6 @@ document.getElementById("fastCard").addEventListener("click", ev=>{
   const b = ev.target.closest("[data-fast]");
   if(!b) return;
   if(b.dataset.fast==="start"){
-    const now = new Date();
-    if (now.getHours() > 21 || (now.getHours() === 21 && now.getMinutes() > 30)) {
-      alert("Attenzione: il piano prevede di terminare l'ultimo pasto entro le 21:30. Cerca di anticipare la cena domani!");
-    }
     state.fast = {start: Date.now()};
     save(); lastFastPhase = null; tickFast();
   } else if(b.dataset.fast==="cancel"){
@@ -630,7 +620,7 @@ document.getElementById("fastCard").addEventListener("click", ev=>{
 const diaryDate = document.getElementById("diaryDate");
 const DAY_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
 const SLOTS = [
-  {id:"pranzo",   nome:"Pranzo",   when:"14:00–15:30", rate:true,  hint:d=>PIANO_GIORNI[d].pranzo+" — Se usi il pasto sostitutivo (whey/barretta), lo spuntino pomeridiano è OBBLIGATORIO."},
+  {id:"pranzo",   nome:"Pranzo",   when:"14:00–15:30", rate:true,  hint:d=>PIANO_GIORNI[d].pranzo+" — oppure pasto sostitutivo (whey/barretta)."},
   {id:"spuntino", nome:"Spuntino", when:"17:00–19:00", rate:true,  hint:d=>"Uno dalla lista spuntini (vedi «Piano»). Obbligatorio se a pranzo hai usato il sostitutivo."},
   {id:"cena",     nome:"Cena",     when:"20:30–21:30", rate:true,  hint:d=>PIANO_GIORNI[d].cena},
   {id:"altro",    nome:"Note / fuori pasto", when:"", rate:false, hint:d=>"Extra, sgarri, com'è andato il digiuno…"}
