@@ -326,7 +326,13 @@ nav button.active{color:var(--green-deep); border-top-color:var(--green);}
 
 <!-- ============ MISURE ============ -->
 <section class="tab" id="tab-misure">
-  <div class="next-visit"><b>Prossimo controllo</b><span>27/08/2026 ore 14:00 — porta con te questa tabella. Dubbi: centroobesitaceccano@gmail.com</span></div>
+  <div class="next-visit">
+    <b>Prossimo controllo</b>
+    <span>27/08/2026 ore 14:00 — porta con te questa tabella.<br>
+    📍 Casa della Salute, Via Borgo S. Lucia 52, Ceccano<br>
+    📞 0775 6262819 / 0775 6262820<br>
+    ✉️ centroobesitaceccano@gmail.com</span>
+  </div>
 
   <div class="card no-print">
     <h2>Nuova misurazione</h2>
@@ -404,7 +410,7 @@ const LIMITI = [
   {id:"salmone", label:"Salmone affumicato (100 g)", max:1, note:"Conta come il pesce del pasto.", kw:["salmone"]},
   {id:"frutti_mare", label:"Crostacei, polpo, vongole", max:1, note:"Una sola volta a settimana.", kw:["gamber","polpo","vongole","cozze","calamar","seppie","seppia","scampi","crostace","moscardin","totani","gambon"]},
   {id:"bastoncini", label:"Bastoncini di pesce (3–4)", max:1, note:"Al forno o in friggitrice ad aria, solo con verdura: NO pane o altri carboidrati perché sono panati.", kw:["bastoncini"]},
-  {id:"riso_bianco", label:"Riso bianco", max:2, note:"Preferire basmati, integrale, venere, rosso, farro, orzo, quinoa.", kw:["riso bianco"]},
+  {id:"riso_bianco", label:"Riso bianco", max:2, note:"Preferire basmati, integrale, venere, rosso, farro, orzo, quinoa.", kw:["riso bianco", "riso", "risotto"]},
   {id:"stagionati", label:"Formaggi stagionati 50 g come pasto", max:1, note:"Grana, parmigiano ecc. al posto del formaggio fresco."},
   {id:"scamorza", label:"Scamorza / caciocavallo (70 g)", max:1, note:"Al posto dei 100 g di formaggio fresco.", kw:["scamorza","caciocavallo"]},
   {id:"snack_crackers", label:"Spuntino: crackers + 30 g crudo + 10 olive", max:2, note:""},
@@ -470,7 +476,8 @@ function load(){
           s.foodLog[d].forEach(e=>{
             const k = map[e.meal]||"altro";
             const line = e.desc + (e.grams?" "+e.grams+" g":"") + (e.time?" (ore "+e.time+")":"");
-            grp[k] = (grp[k]?grp[k]+"\n":"") + line;
+            grp[k] = (grp[k]?grp[k]+"
+":"") + line;
           });
           if(Object.keys(grp).length) s.meals[d] = grp;
         }
@@ -566,8 +573,8 @@ function buildFastCard(p){
   if(p.phase==="idle" || p.phase==="done"){
     c.className = "card";
     c.innerHTML = '<div class="eyebrow">Timer 16:8</div>'+
-      (p.phase==="done" ? '<h2>Ciclo completato 🎉</h2><p class="muted" style="margin-bottom:10px">16 ore di digiuno + 8 di finestra alimentare. Quando finisci l\'ultimo pasto, riparti.</p>'
-                        : '<p class="muted" style="margin-bottom:10px">Premi il pulsante dopo l\'ultimo boccone della sera: partono le 16 ore di digiuno. Il timer continua anche ad app chiusa.</p>')+
+      (p.phase==="done" ? '<h2>Ciclo completato 🎉</h2><p class="muted" style="margin-bottom:10px">16 ore di digiuno + 8 di finestra alimentare. Quando finisci l'ultimo pasto, riparti.</p>'
+                        : '<p class="muted" style="margin-bottom:10px">Premi il pulsante dopo l'ultimo boccone della sera: partono le 16 ore di digiuno. Il timer continua anche ad app chiusa.</p>')+
       '<button class="btn btn-full" data-fast="start">▶ Inizia le 16 ore di digiuno</button>';
   } else if(p.phase==="fast"){
     c.className = "card phase-fast";
@@ -606,6 +613,10 @@ document.getElementById("fastCard").addEventListener("click", ev=>{
   const b = ev.target.closest("[data-fast]");
   if(!b) return;
   if(b.dataset.fast==="start"){
+    const now = new Date();
+    if (now.getHours() > 21 || (now.getHours() === 21 && now.getMinutes() > 30)) {
+      alert("Attenzione: il piano prevede di terminare l'ultimo pasto entro le 21:30. Cerca di anticipare la cena domani!");
+    }
     state.fast = {start: Date.now()};
     save(); lastFastPhase = null; tickFast();
   } else if(b.dataset.fast==="cancel"){
@@ -620,7 +631,7 @@ document.getElementById("fastCard").addEventListener("click", ev=>{
 const diaryDate = document.getElementById("diaryDate");
 const DAY_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
 const SLOTS = [
-  {id:"pranzo",   nome:"Pranzo",   when:"14:00–15:30", rate:true,  hint:d=>PIANO_GIORNI[d].pranzo+" — oppure pasto sostitutivo (whey/barretta)."},
+  {id:"pranzo",   nome:"Pranzo",   when:"14:00–15:30", rate:true,  hint:d=>PIANO_GIORNI[d].pranzo+" — Se usi il pasto sostitutivo (whey/barretta), lo spuntino pomeridiano è OBBLIGATORIO."},
   {id:"spuntino", nome:"Spuntino", when:"17:00–19:00", rate:true,  hint:d=>"Uno dalla lista spuntini (vedi «Piano»). Obbligatorio se a pranzo hai usato il sostitutivo."},
   {id:"cena",     nome:"Cena",     when:"20:30–21:30", rate:true,  hint:d=>PIANO_GIORNI[d].cena},
   {id:"altro",    nome:"Note / fuori pasto", when:"", rate:false, hint:d=>"Extra, sgarri, com'è andato il digiuno…"}
@@ -706,7 +717,8 @@ document.getElementById("mealsCard").addEventListener("input", ev=>{
 /* --- Rilevamento alimenti limitati dal testo del diario --- */
 function detectLimits(dateStr){
   const m = state.meals[dateStr]||{};
-  const text = [m.pranzo, m.spuntino, m.cena, m.altro].filter(Boolean).join(" \n ").toLowerCase();
+  const text = [m.pranzo, m.spuntino, m.cena, m.altro].filter(Boolean).join(" 
+ ").toLowerCase();
   if(!text.trim()) return [];
   return LIMITI.filter(it => it.kw && it.kw.some(k => text.includes(k))).map(it=>it.id);
 }
@@ -1035,12 +1047,12 @@ function pdfEsc(s){
     else byte=0x3F; // carattere non rappresentabile -> '?'
     if(byte<0x20) continue; // scarta caratteri di controllo (incl. newline: le righe sono già separate)
     const c=String.fromCharCode(byte);
-    out += (c==="("||c===")"||c==="\\") ? "\\"+c : c;
+    out += (c==="("||c===")"||c==="\") ? "\"+c : c;
   }
   return out;
 }
 // Larghezza approssimata dei glifi Helvetica (frazione dell'em) per l'a capo.
-const _NARROW=" ijltfI.,:;'!|()[]{}/\\", _WIDE="mMWw@—–";
+const _NARROW=" ijltfI.,:;'!|()[]{}/\", _WIDE="mMWw@—–";
 function _frac(ch){
   if(_NARROW.indexOf(ch)>=0) return 0.30;
   if(_WIDE.indexOf(ch)>=0) return 0.80;
@@ -1099,7 +1111,8 @@ function buildWeekPdfString(){
         let sfx="";
         if(slot!=="altro" && ratings[slot]===1) sfx="  (in linea)";
         else if(slot!=="altro" && ratings[slot]===0) sfx="  (fuori piano)";
-        const clean=String(txt).replace(/\s*\n\s*/g," / ");
+        const clean=String(txt).replace(/\s*
+\s*/g," / ");
         para(SLOT_NAMES[slot]+": "+clean+sfx, 10, "F1", ML+12, 14, usable-12);
       });
       if(!any) line("nessun pasto registrato", 10, "F1", ML+12, 15);
@@ -1127,21 +1140,37 @@ function buildWeekPdfString(){
   parts.push({num:3, body:"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"});
   parts.push({num:4, body:"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>"});
   for(let i=0;i<N;i++){
-    const stream=pages[i].join("\n");
-    parts.push({num:contentStart+i, body:"<< /Length "+stream.length+" >>\nstream\n"+stream+"\nendstream"});
+    const stream=pages[i].join("
+");
+    parts.push({num:contentStart+i, body:"<< /Length "+stream.length+" >>
+stream
+"+stream+"
+endstream"});
   }
   for(let i=0;i<N;i++){
     parts.push({num:pageStart+i, body:"<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents "+(contentStart+i)+" 0 R >>"});
   }
   parts.sort((a,b)=>a.num-b.num);
   const maxNum=parts[parts.length-1].num;
-  let pdf="%PDF-1.4\n";
+  let pdf="%PDF-1.4
+";
   const offsets=new Array(maxNum+1).fill(0);
-  for(const p of parts){ offsets[p.num]=pdf.length; pdf+=p.num+" 0 obj\n"+p.body+"\nendobj\n"; }
+  for(const p of parts){ offsets[p.num]=pdf.length; pdf+=p.num+" 0 obj
+"+p.body+"
+endobj
+"; }
   const xref=pdf.length;
-  pdf+="xref\n0 "+(maxNum+1)+"\n0000000000 65535 f \n";
-  for(let n=1;n<=maxNum;n++) pdf+=String(offsets[n]).padStart(10,"0")+" 00000 n \n";
-  pdf+="trailer\n<< /Size "+(maxNum+1)+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF";
+  pdf+="xref
+0 "+(maxNum+1)+"
+0000000000 65535 f 
+";
+  for(let n=1;n<=maxNum;n++) pdf+=String(offsets[n]).padStart(10,"0")+" 00000 n 
+";
+  pdf+="trailer
+<< /Size "+(maxNum+1)+" /Root 1 0 R >>
+startxref
+"+xref+"
+%%EOF";
   return {pdf, mon};
 }
 function downloadWeekPdf(){
