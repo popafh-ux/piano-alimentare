@@ -202,6 +202,19 @@ textarea.meal-input{resize:none; min-height:54px; overflow:hidden; line-height:1
 .score-hist > div{display:flex; justify-content:space-between; padding:3px 0;}
 .score-hist b{font-variant-numeric:tabular-nums;}
 
+/* ---------- valutazione AI ---------- */
+.ai-box{margin-top:12px; background:#F1F5EC; border:1px solid var(--line); border-radius:12px; padding:12px 14px; font-size:.86rem;}
+.ai-box .row{display:flex; gap:8px; padding:3px 0;}
+.ai-box .row b{flex:0 0 72px; color:var(--green-deep);}
+.ai-comment{margin-top:8px; font-style:italic;}
+
+/* ---------- rilevamento limiti ---------- */
+#limitDetectCard{background:var(--amber-soft); border-color:#EAD8B4;}
+.detect-row{display:flex; align-items:center; gap:10px; padding:7px 0; border-top:1px dashed #E4D3AE;}
+.detect-row:first-of-type{border-top:none;}
+.detect-row .d-label{flex:1; min-width:0; font-size:.9rem;}
+.detect-row.done .d-label{color:var(--green-deep);}
+
 /* ---------- limiti ---------- */
 .limit-item{
   border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px; margin-bottom:10px; background:var(--card);
@@ -310,6 +323,8 @@ nav button.active{color:var(--green-deep); border-top-color:var(--green);}
 
   <div class="card" id="mealsCard"></div>
 
+  <div class="card" id="limitDetectCard" style="display:none"></div>
+
   <div class="card">
     <h2>Acqua</h2>
     <div class="water-row">
@@ -374,7 +389,11 @@ nav button.active{color:var(--green-deep); border-top-color:var(--green);}
       <div><button class="btn secondary btn-full" id="exportBtn">Esporta backup</button></div>
       <div><button class="btn secondary btn-full" id="importBtn">Importa backup</button></div>
     </div>
-    <button class="btn secondary btn-full" id="printBtn">Stampa la tabella per la visita</button>
+    <div class="form-row">
+      <div><button class="btn secondary btn-full" id="printBtn">Stampa la tabella per la visita</button></div>
+      <div><button class="btn secondary btn-full" id="aiKeyBtn">Chiave AI di Claude</button></div>
+    </div>
+    <p class="muted">La chiave AI resta solo su questo telefono e NON viene inclusa nel backup: non caricarla mai su GitHub.</p>
     <input type="file" id="importFile" accept=".json" style="display:none">
   </div>
 </section>
@@ -414,19 +433,19 @@ const PIANO_GIORNI = {
 };
 
 const LIMITI = [
-  {id:"pasto_libero", label:"Pasto libero", max:1, note:"Previsto sabato a cena, ma puoi spostarlo: l'importante è che sia uno solo a settimana."},
-  {id:"tonno_vetro", label:"Tonno al vetro", max:1, note:"Max 100 g (80 g se a pranzo del mercoledì)."},
-  {id:"salmone", label:"Salmone affumicato (100 g)", max:1, note:"Conta come il pesce del pasto."},
-  {id:"frutti_mare", label:"Crostacei, polpo, vongole", max:1, note:"Una sola volta a settimana."},
-  {id:"bastoncini", label:"Bastoncini di pesce (3–4)", max:1, note:"Al forno o in friggitrice ad aria, solo con verdura: NO pane o altri carboidrati perché sono panati."},
-  {id:"riso_bianco", label:"Riso bianco", max:2, note:"Preferire basmati, integrale, venere, rosso, farro, orzo, quinoa."},
+  {id:"pasto_libero", label:"Pasto libero", max:1, note:"Previsto sabato a cena, ma puoi spostarlo: l'importante è che sia uno solo a settimana.", kw:["pasto libero"]},
+  {id:"tonno_vetro", label:"Tonno al vetro", max:1, note:"Max 100 g (80 g se a pranzo del mercoledì).", kw:["tonno al vetro","tonno in vetro","tonno in scatola","tonno sott'olio","tonno sottolio","tonno sgocciolato","scatoletta di tonno"]},
+  {id:"salmone", label:"Salmone affumicato (100 g)", max:1, note:"Conta come il pesce del pasto.", kw:["salmone"]},
+  {id:"frutti_mare", label:"Crostacei, polpo, vongole", max:1, note:"Una sola volta a settimana.", kw:["gamber","polpo","vongole","cozze","calamar","seppie","seppia","scampi","crostace","moscardin","totani","gambon"]},
+  {id:"bastoncini", label:"Bastoncini di pesce (3–4)", max:1, note:"Al forno o in friggitrice ad aria, solo con verdura: NO pane o altri carboidrati perché sono panati.", kw:["bastoncini"]},
+  {id:"riso_bianco", label:"Riso bianco", max:2, note:"Preferire basmati, integrale, venere, rosso, farro, orzo, quinoa.", kw:["riso bianco"]},
   {id:"stagionati", label:"Formaggi stagionati 50 g come pasto", max:1, note:"Grana, parmigiano ecc. al posto del formaggio fresco."},
-  {id:"scamorza", label:"Scamorza / caciocavallo (70 g)", max:1, note:"Al posto dei 100 g di formaggio fresco."},
+  {id:"scamorza", label:"Scamorza / caciocavallo (70 g)", max:1, note:"Al posto dei 100 g di formaggio fresco.", kw:["scamorza","caciocavallo"]},
   {id:"snack_crackers", label:"Spuntino: crackers + 30 g crudo + 10 olive", max:2, note:""},
   {id:"snack_grana", label:"Spuntino: finocchio/carota + olio + 30 g grana", max:2, note:""},
-  {id:"piadina", label:"Piadina (al posto del pane)", max:1, note:"Grande, meglio se all'olio di oliva, preferibilmente integrale."},
-  {id:"patate", label:"Patate ~300 g (al posto del pane)", max:2, note:"Non sono una verdura: se le mangi, niente pane o altro sostituto nello stesso pasto."},
-  {id:"bevande_zero", label:"Bevanda zero zuccheri", max:2, note:"Il piano dice max 1–2 volte a settimana; le bevande zuccherate normali sono da evitare del tutto."}
+  {id:"piadina", label:"Piadina (al posto del pane)", max:1, note:"Grande, meglio se all'olio di oliva, preferibilmente integrale.", kw:["piadina"]},
+  {id:"patate", label:"Patate ~300 g (al posto del pane)", max:2, note:"Non sono una verdura: se le mangi, niente pane o altro sostituto nello stesso pasto.", kw:["patate","patata","purè","purea","puré"]},
+  {id:"bevande_zero", label:"Bevanda zero zuccheri", max:2, note:"Il piano dice max 1–2 volte a settimana; le bevande zuccherate normali sono da evitare del tutto.", kw:["zero zucch","coca zero","cola zero","pepsi zero","sprite zero","fanta zero"," light"]}
 ];
 
 const OBIETTIVI = [
@@ -491,12 +510,14 @@ function load(){
         }
       }
       if(!s.mealOk) s.mealOk = {};
+      if(!s.aiNotes) s.aiNotes = {};
+      if(!s.limitLinks) s.limitLinks = {};
       return s;
     }
   }catch(e){}
   return {
     settings:{altezza:1.68},
-    meals:{}, mealOk:{}, foodLog:{}, water:{}, limits:{}, goals:{},
+    meals:{}, mealOk:{}, aiNotes:{}, limitLinks:{}, foodLog:{}, water:{}, limits:{}, goals:{},
     measures:[{date:"2026-07-09", peso:96.1, cv:109.5, co:123, cf:115, cc:40}]
   };
 }
@@ -705,8 +726,27 @@ function renderMeals(){
           '<button type="button" class="rate-btn no'+(v===0?" active":"")+'" data-rate="0" data-slot="'+s.id+'">✗ Fuori piano</button>'+
         '</div>' : "")+
       '</div>';
-    }).join("");
+    }).join("")+
+    '<div style="margin-top:14px"><button class="btn btn-full" id="aiEvalBtn">✨ Fai valutare i pasti a Claude</button></div>'+
+    aiBoxHTML(ds);
   document.querySelectorAll("#mealsCard textarea").forEach(autogrow);
+}
+const AI_ICONS = {ok:"🟢", no:"🔴", dubbio:"🟡"};
+function aiBoxHTML(ds){
+  const n = state.aiNotes[ds];
+  if(!n || !n.res) return "";
+  const r = n.res;
+  const nomi = {pranzo:"Pranzo", spuntino:"Spuntino", cena:"Cena"};
+  let rows = "";
+  RATE_SLOTS.forEach(s=>{
+    if(r[s] && r[s].verdetto){
+      rows += '<div class="row"><b>'+nomi[s]+'</b><span>'+(AI_ICONS[r[s].verdetto]||"")+" "+esc(r[s].motivo||"")+'</span></div>';
+    }
+  });
+  const q = new Date(n.ts);
+  return '<div class="ai-box"><div class="eyebrow">Valutazione di Claude</div>'+rows+
+    (r.commento?'<div class="ai-comment">'+esc(r.commento)+'</div>':"")+
+    '<div class="muted" style="margin-top:6px; font-size:.74rem">Valutato il '+q.toLocaleDateString("it-IT")+' alle '+pad(q.getHours())+':'+pad(q.getMinutes())+' · 🟡 = dubbio, decidi tu con i pulsanti</div></div>';
 }
 function flushMealInputs(){
   const ds = diaryDate.value;
@@ -732,10 +772,62 @@ document.getElementById("mealsCard").addEventListener("input", ev=>{
     save();
     const f = document.getElementById("flash-"+slot);
     if(f){ f.classList.add("show"); setTimeout(()=>f.classList.remove("show"), 1300); }
-    renderWeekStrip();
+    renderWeekStrip(); renderLimitDetect();
   }, 450);
 });
+
+/* --- Rilevamento alimenti limitati dal testo del diario --- */
+function detectLimits(dateStr){
+  const m = state.meals[dateStr]||{};
+  const text = [m.pranzo, m.spuntino, m.cena, m.altro].filter(Boolean).join(" \n ").toLowerCase();
+  if(!text.trim()) return [];
+  return LIMITI.filter(it => it.kw && it.kw.some(k => text.includes(k))).map(it=>it.id);
+}
+function renderLimitDetect(){
+  const ds = diaryDate.value;
+  const detected = detectLimits(ds);
+  const c = document.getElementById("limitDetectCard");
+  if(!detected.length){ c.style.display="none"; c.innerHTML=""; return; }
+  const wk = mondayOf(ds);
+  const counts = state.limits[wk]||{};
+  const links = state.limitLinks[ds]||{};
+  c.style.display="";
+  c.innerHTML = '<div class="eyebrow">Alimenti a frequenza limitata rilevati</div>'+
+    '<p class="muted" style="margin-bottom:10px">Ho notato questi alimenti nel diario del giorno. Vuoi segnarli nel conteggio settimanale dei limiti? Decidi tu.</p>'+
+    detected.map(id=>{
+      const it = LIMITI.find(x=>x.id===id);
+      const linked = !!links[id];
+      const c2 = counts[id]||0;
+      return '<div class="detect-row'+(linked?" done":"")+'">'+
+        '<span class="d-label">'+(linked?"✓ ":"🔵 ")+esc(it.label)+
+          ' <span class="muted">('+c2+"/"+it.max+" a settimana)</span></span>"+
+        (linked
+          ? '<button class="btn small secondary" data-unlink="'+id+'">Annulla</button>'
+          : '<button class="btn small" data-link="'+id+'"'+(c2>=it.max?' disabled title="Limite già raggiunto"':"")+'>'+(c2>=it.max?"Al limite":"Segna")+'</button>')+
+      '</div>';
+    }).join("");
+}
+document.getElementById("limitDetectCard").addEventListener("click", ev=>{
+  const bl = ev.target.closest("[data-link]");
+  const bu = ev.target.closest("[data-unlink]");
+  const ds = diaryDate.value, wk = mondayOf(ds);
+  if(bl){
+    const it = LIMITI.find(x=>x.id===bl.dataset.link);
+    const w = state.limits[wk] = state.limits[wk]||{};
+    if((w[it.id]||0) < it.max) w[it.id] = (w[it.id]||0)+1;
+    (state.limitLinks[ds] = state.limitLinks[ds]||{})[it.id] = true;
+    save(); renderLimitDetect(); renderLimits();
+  } else if(bu){
+    const id = bu.dataset.unlink;
+    const w = state.limits[wk] = state.limits[wk]||{};
+    if((w[id]||0) > 0) w[id] = w[id]-1;
+    if(state.limitLinks[ds]) delete state.limitLinks[ds][id];
+    if(state.limitLinks[ds] && !Object.keys(state.limitLinks[ds]).length) delete state.limitLinks[ds];
+    save(); renderLimitDetect(); renderLimits();
+  }
+});
 document.getElementById("mealsCard").addEventListener("click", ev=>{
+  if(ev.target.closest("#aiEvalBtn")){ aiEvaluate(); return; }
   const b = ev.target.closest("[data-rate]");
   if(!b) return;
   const ds = diaryDate.value, slot = b.dataset.slot, val = +b.dataset.rate;
@@ -754,15 +846,15 @@ document.getElementById("weekStrip").addEventListener("click", ev=>{
   const c = ev.target.closest("[data-day]");
   if(!c) return;
   diaryDate.value = c.dataset.day;
-  renderWeekStrip(); renderMeals(); renderWater();
+  renderWeekStrip(); renderMeals(); renderWater(); renderLimitDetect();
 });
 document.getElementById("weekPrev").addEventListener("click", ()=>{
   diaryDate.value = shiftDate(diaryDate.value, -7);
-  renderWeekStrip(); renderMeals(); renderWater();
+  renderWeekStrip(); renderMeals(); renderWater(); renderLimitDetect();
 });
 document.getElementById("weekNext").addEventListener("click", ()=>{
   diaryDate.value = shiftDate(diaryDate.value, 7);
-  renderWeekStrip(); renderMeals(); renderWater();
+  renderWeekStrip(); renderMeals(); renderWater(); renderLimitDetect();
 });
 function renderWater(){
   const n = state.water[diaryDate.value]||0;
@@ -776,7 +868,96 @@ document.getElementById("waterPlus").addEventListener("click", ()=>{
 document.getElementById("waterMinus").addEventListener("click", ()=>{
   const n=(state.water[diaryDate.value]||0); if(n>0) state.water[diaryDate.value]=n-1; save(); renderWater();
 });
-diaryDate.addEventListener("change", ()=>{ renderWeekStrip(); renderMeals(); renderWater(); });
+diaryDate.addEventListener("change", ()=>{ renderWeekStrip(); renderMeals(); renderWater(); renderLimitDetect(); });
+
+/* ================= VALUTAZIONE AI (Claude) ================= */
+const AI_KEY_STORE = "pianoClaudeKey";
+function configureAIKey(){
+  const cur = localStorage.getItem(AI_KEY_STORE);
+  const msg = cur
+    ? "Chiave attuale: "+cur.slice(0,12)+"…\n\nIncolla una nuova chiave per sostituirla, oppure scrivi RIMUOVI per cancellarla:"
+    : "Incolla la tua chiave API di Anthropic (inizia con sk-ant-).\nLa chiave resta salvata SOLO su questo telefono:";
+  const v = prompt(msg);
+  if(v===null) return;
+  const t = v.trim();
+  if(t.toUpperCase()==="RIMUOVI"){ localStorage.removeItem(AI_KEY_STORE); alert("Chiave rimossa."); return; }
+  if(!t) return;
+  if(!t.startsWith("sk-ant")){ alert("Non sembra una chiave valida: deve iniziare con sk-ant-"); return; }
+  localStorage.setItem(AI_KEY_STORE, t);
+  alert("Chiave salvata ✔ Ora puoi usare «Fai valutare i pasti a Claude».");
+}
+function buildAiPrompt(ds){
+  const dow = new Date(ds+"T12:00:00").getDay();
+  const p = PIANO_GIORNI[dow];
+  const m = state.meals[ds]||{};
+  const val = s => m[s] ? '"'+m[s].replace(/"/g,"'")+'"' : "NON COMPILATO";
+  return "Sei un assistente nutrizionale. Valuta l'aderenza dei pasti registrati dall'utente al suo piano nutrizionale prescritto dall'ambulatorio. Giorno della settimana: "+p.nome+".\n\n"+
+  "COSA PREVEDE IL PIANO PER QUESTO GIORNO:\n"+
+  "- Pranzo: "+p.pranzo+"\n"+
+  "- Spuntino (17-19), uno tra: "+SPUNTINI.join(" | ")+"\n"+
+  "- Cena: "+p.cena+"\n\n"+
+  "REGOLE GENERALI: verdure devono riempire metà piatto nei pasti completi; 1 cucchiaio (10 g) di olio EVO a pasto; pane 80 g preferibilmente integrale o alternative equivalenti (tra cui 2 patate ~300 g max 2 volte/settimana, 1 piadina max 1 volta/settimana, 1 frutto max 150 g al posto del pane); a pranzo è sempre ammesso un pasto sostitutivo (whey protein 25-30 g o barretta sostitutiva); vietati dolci, zucchero, merendine e bevande zuccherate (zero zuccheri max 1-2 volte/settimana); il pasto libero è 1 volta a settimana (di norma sabato a cena): se questo pasto è il pasto libero e rispetta le sue regole (niente pasta+pane insieme, niente frutta+dolce, meglio verdure prima), il verdetto è ok.\n\n"+
+  "PASTI REGISTRATI:\n"+
+  "Pranzo: "+val("pranzo")+"\n"+
+  "Spuntino: "+val("spuntino")+"\n"+
+  "Cena: "+val("cena")+"\n\n"+
+  "Rispondi SOLO con un oggetto JSON valido, senza alcun testo prima o dopo e senza blocchi markdown, esattamente in questo formato:\n"+
+  '{"pranzo":{"verdetto":"ok|no|dubbio","motivo":"max 15 parole in italiano"},"spuntino":{"verdetto":"...","motivo":"..."},"cena":{"verdetto":"...","motivo":"..."},"commento":"1-2 frasi complessive in italiano, tono concreto e incoraggiante"}\n'+
+  'Criteri: "ok" = rispetta il piano (sii ragionevole: piccole imprecisioni di grammatura non contano); "no" = chiaramente fuori piano; "dubbio" = informazioni insufficienti per decidere. Per i pasti NON COMPILATI usa verdetto "dubbio" e motivo "non compilato".';
+}
+async function aiEvaluate(){
+  const key = localStorage.getItem(AI_KEY_STORE);
+  if(!key){ configureAIKey(); return; }
+  flushMealInputs(); save();
+  const ds = diaryDate.value;
+  const m = state.meals[ds]||{};
+  if(!m.pranzo && !m.spuntino && !m.cena){
+    alert("Scrivi prima almeno un pasto in questo giorno."); return;
+  }
+  const btn = document.getElementById("aiEvalBtn");
+  btn.disabled = true; btn.textContent = "Claude sta valutando…";
+  try{
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{
+        "content-type":"application/json",
+        "x-api-key": key,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true"
+      },
+      body: JSON.stringify({
+        model:"claude-haiku-4-5-20251001",
+        max_tokens: 600,
+        messages:[{role:"user", content: buildAiPrompt(ds)}]
+      })
+    });
+    const data = await resp.json();
+    if(!resp.ok){
+      const em = (data && data.error && data.error.message) || ("errore "+resp.status);
+      if(resp.status===401) throw new Error("Chiave API non valida o disattivata. Controlla la chiave (pulsante «Chiave AI» nella scheda Misure).");
+      if(resp.status===429) throw new Error("Troppe richieste in poco tempo: riprova tra qualche secondo.");
+      throw new Error(em);
+    }
+    const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("\n");
+    const a = text.indexOf("{"), z = text.lastIndexOf("}");
+    if(a<0 || z<0) throw new Error("Risposta in formato inatteso, riprova.");
+    const res = JSON.parse(text.slice(a, z+1));
+    // applica i verdetti (dubbio non tocca la tua valutazione)
+    const day = state.mealOk[ds] = state.mealOk[ds]||{};
+    RATE_SLOTS.forEach(s=>{
+      if(!m[s] || !res[s]) return;
+      if(res[s].verdetto==="ok") day[s]=1;
+      else if(res[s].verdetto==="no") day[s]=0;
+    });
+    if(!Object.keys(day).length) delete state.mealOk[ds];
+    state.aiNotes[ds] = {res, ts: Date.now()};
+    save();
+    renderMeals(); renderWeekStrip(); renderScore();
+  }catch(e){
+    alert("Valutazione non riuscita: "+(e && e.message ? e.message : "controlla la connessione internet."));
+    renderMeals();
+  }
+}
 
 /* ================= PAGELLA SETTIMANALE ================= */
 const RATE_SLOTS = ["pranzo","spuntino","cena"];
@@ -991,6 +1172,7 @@ document.getElementById("importFile").addEventListener("change", ev=>{
   ev.target.value = "";
 });
 document.getElementById("printBtn").addEventListener("click", ()=>window.print());
+document.getElementById("aiKeyBtn").addEventListener("click", configureAIKey);
 
 /* ================= NAVIGAZIONE ================= */
 document.querySelectorAll("nav button").forEach(b=>{
@@ -1003,7 +1185,7 @@ document.querySelectorAll("nav button").forEach(b=>{
 
 /* ================= AVVIO ================= */
 function renderAll(){
-  renderWeekStrip(); renderMeals(); renderWater();
+  renderWeekStrip(); renderMeals(); renderWater(); renderLimitDetect();
   renderScore(); renderLimits(); renderPlanRef(); renderMeasures();
 }
 diaryDate.value = todayISO();
