@@ -301,9 +301,16 @@ nav button.active{color:var(--green-deep); border-top-color:var(--green);}
   </div>
 
   <div class="card">
+    <div class="meal-slot-head" style="margin-bottom:6px"><h2 style="margin:0">Attività fisica</h2><span class="save-flash" id="flash-activity">✓ salvato</span></div>
+    <div class="plan-hint">Scrivi liberamente il movimento fatto in questo giorno: comparirà nel riepilogo PDF della settimana.</div>
+    <textarea class="meal-input" id="activityInput" rows="2" placeholder="Es. camminata veloce 30 min, tapis roulant, cyclette, giardinaggio…"></textarea>
+  </div>
+
+  <div class="card">
     <h2>Valutazione della settimana</h2>
-    <p class="muted" style="margin-bottom:10px">Genera un file PDF scaricabile con il riepilogo dei pasti della settimana in corso, da lunedì a domenica. I giorni non ancora arrivati restano vuoti.</p>
-    <button class="btn btn-full" id="valutaBtn">Valuta</button>
+    <p class="muted" style="margin-bottom:10px">Genera un file PDF con il riepilogo di pasti, acqua e attività fisica della settimana in corso, da lunedì a domenica. Con «Condividi» puoi salvarlo direttamente su Google Drive scegliendo Drive dal menu del telefono.</p>
+    <button class="btn btn-full" id="valutaBtn">Scarica il PDF</button>
+    <button class="btn secondary btn-full" id="shareBtn" style="margin-top:8px">Condividi / Salva su Drive</button>
   </div>
 </section>
 
@@ -312,9 +319,6 @@ nav button.active{color:var(--green-deep); border-top-color:var(--green);}
   <div class="card" id="scoreCard"></div>
   <div class="banner"><b id="weekLabel"></b><br>Quando raggiungi il numero massimo di volte, l'alimento resta bloccato fino a lunedì. I conteggi ripartono da zero a inizio settimana.</div>
   <div id="limitsList"></div>
-
-  <h2 style="margin:18px 0 10px">Obiettivi della settimana</h2>
-  <div id="goalsList"></div>
 </section>
 
 <!-- ============ PIANO ============ -->
@@ -414,10 +418,6 @@ const LIMITI = [
   {id:"bevande_zero", label:"Bevanda zero zuccheri", max:2, note:"Il piano dice max 1–2 volte a settimana; le bevande zuccherate normali sono da evitare del tutto.", kw:["zero zucch","coca zero","cola zero","pepsi zero","sprite zero","fanta zero"," light"]}
 ];
 
-const OBIETTIVI = [
-  {id:"camminata", label:"Camminata 30 min a passo veloce / tapis roulant", target:3, note:"Obiettivo: almeno 3 volte a settimana."}
-];
-
 const SPUNTINI = [
   "1 frutto fresco (max 150 g) + 8 mandorle/pistacchi/arachidi o 3 noci (non salati) + kefir bianco 125 g o yogurt greco bianco 150 g",
   "2 gallette di riso o mais + 25 g Philadelphia + 2 cucchiaini di crema 100% frutta secca",
@@ -478,12 +478,13 @@ function load(){
       if(!s.mealOk) s.mealOk = {};
       if(!s.aiNotes) s.aiNotes = {};
       if(!s.limitLinks) s.limitLinks = {};
+      if(!s.activity) s.activity = {};
       return s;
     }
   }catch(e){}
   return {
     settings:{altezza:1.68},
-    meals:{}, mealOk:{}, aiNotes:{}, limitLinks:{}, foodLog:{}, water:{}, limits:{}, goals:{},
+    meals:{}, mealOk:{}, aiNotes:{}, limitLinks:{}, foodLog:{}, water:{}, limits:{}, goals:{}, activity:{},
     measures:[{date:"2026-07-09", peso:96.1, cv:109.5, co:123, cf:115, cc:40}]
   };
 }
@@ -627,7 +628,7 @@ const SLOTS = [
 ];
 function dayHasText(dateStr){
   const m = state.meals[dateStr];
-  return !!(m && Object.values(m).some(v=>v && v.trim()));
+  return !!(m && Object.values(m).some(v=>v && v.trim())) || !!state.activity[dateStr];
 }
 function shiftDate(dateStr, days){
   const d = new Date(dateStr+"T12:00:00");
@@ -772,16 +773,40 @@ document.getElementById("weekStrip").addEventListener("click", ev=>{
   const c = ev.target.closest("[data-day]");
   if(!c) return;
   diaryDate.value = c.dataset.day;
-  renderWeekStrip(); renderMeals(); renderWater(); renderLimitDetect();
+  renderWeekStrip(); renderMeals(); renderWater(); renderActivity(); renderLimitDetect();
 });
 document.getElementById("weekPrev").addEventListener("click", ()=>{
   diaryDate.value = shiftDate(diaryDate.value, -7);
-  renderWeekStrip(); renderMeals(); renderWater(); renderLimitDetect();
+  renderWeekStrip(); renderMeals(); renderWater(); renderActivity(); renderLimitDetect();
 });
 document.getElementById("weekNext").addEventListener("click", ()=>{
   diaryDate.value = shiftDate(diaryDate.value, 7);
-  renderWeekStrip(); renderMeals(); renderWater(); renderLimitDetect();
+  renderWeekStrip(); renderMeals(); renderWater(); renderActivity(); renderLimitDetect();
 });
+/* --- Attività fisica del giorno --- */
+const activityInput = document.getElementById("activityInput");
+function renderActivity(){
+  activityInput.value = state.activity[diaryDate.value]||"";
+  autogrow(activityInput);
+}
+function flushActivity(){
+  clearTimeout(saveTimers.activity);
+  const ds = diaryDate.value, val = activityInput.value.trim();
+  if(val) state.activity[ds] = val; else delete state.activity[ds];
+}
+activityInput.addEventListener("input", ()=>{
+  autogrow(activityInput);
+  const ds = diaryDate.value, val = activityInput.value;
+  clearTimeout(saveTimers.activity);
+  saveTimers.activity = setTimeout(()=>{
+    if(val.trim()) state.activity[ds] = val.trim(); else delete state.activity[ds];
+    save();
+    const f = document.getElementById("flash-activity");
+    if(f){ f.classList.add("show"); setTimeout(()=>f.classList.remove("show"), 1300); }
+    renderWeekStrip();
+  }, 450);
+});
+
 function renderWater(){
   const n = state.water[diaryDate.value]||0;
   const litri = (n*0.2).toFixed(1).replace(".",",");
@@ -794,7 +819,7 @@ document.getElementById("waterPlus").addEventListener("click", ()=>{
 document.getElementById("waterMinus").addEventListener("click", ()=>{
   const n=(state.water[diaryDate.value]||0); if(n>0) state.water[diaryDate.value]=n-1; save(); renderWater();
 });
-diaryDate.addEventListener("change", ()=>{ renderWeekStrip(); renderMeals(); renderWater(); renderLimitDetect(); });
+diaryDate.addEventListener("change", ()=>{ renderWeekStrip(); renderMeals(); renderWater(); renderActivity(); renderLimitDetect(); });
 
 /* ================= PAGELLA SETTIMANALE ================= */
 const RATE_SLOTS = ["pranzo","spuntino","cena"];
@@ -872,34 +897,15 @@ function renderLimits(){
         '<span class="spacer"></span><span class="muted">'+c+" / "+it.max+" a settimana</span>"+
       '</div></div>';
   }).join("");
-  const g = state.goals[wk]||{};
-  document.getElementById("goalsList").innerHTML = OBIETTIVI.map(it=>{
-    const c = g[it.id]||0;
-    const done = c>=it.target;
-    return '<div class="limit-item'+(done?" goal-done":"")+'">'+
-      '<div class="limit-head"><div><h3>'+it.label+'</h3><div class="limit-note">'+it.note+'</div></div>'+dots(Math.min(c,it.target),it.target)+'</div>'+
-      (done?'<div class="limit-blockmsg" style="color:var(--green)">✔ Obiettivo della settimana raggiunto'+(c>it.target?" ("+c+" volte)":"")+'</div>':"")+
-      '<div class="limit-controls">'+
-        '<button class="btn small" data-goal="'+it.id+'" data-dir="1">Fatta oggi</button>'+
-        (c>0?'<button class="btn small secondary" data-goal="'+it.id+'" data-dir="-1">Annulla</button>':"")+
-        '<span class="spacer"></span><span class="muted">'+c+" / "+it.target+"</span>"+
-      '</div></div>';
-  }).join("");
 }
 document.getElementById("tab-limiti").addEventListener("click", ev=>{
   const bl = ev.target.closest("[data-lim]");
-  const bg = ev.target.closest("[data-goal]");
+  if(!bl) return;
   const wk = weekKeyNow();
-  if(bl){
-    const it = LIMITI.find(x=>x.id===bl.dataset.lim);
-    const w = state.limits[wk] = state.limits[wk]||{};
-    w[it.id] = Math.max(0, Math.min(it.max, (w[it.id]||0) + (+bl.dataset.dir)));
-    save(); renderLimits();
-  } else if(bg){
-    const w = state.goals[wk] = state.goals[wk]||{};
-    w[bg.dataset.goal] = Math.max(0,(w[bg.dataset.goal]||0) + (+bg.dataset.dir));
-    save(); renderLimits();
-  }
+  const it = LIMITI.find(x=>x.id===bl.dataset.lim);
+  const w = state.limits[wk] = state.limits[wk]||{};
+  w[it.id] = Math.max(0, Math.min(it.max, (w[it.id]||0) + (+bl.dataset.dir)));
+  save(); renderLimits();
 });
 
 /* ================= TAB PIANO ================= */
@@ -1103,6 +1109,8 @@ function buildWeekPdfString(){
         para(SLOT_NAMES[slot]+": "+clean+sfx, 10, "F1", ML+12, 14, usable-12);
       });
       if(!any) line("nessun pasto registrato", 10, "F1", ML+12, 15);
+      const act=state.activity[ds];
+      if(act) para("Attività fisica: "+String(act).replace(/\s*\n\s*/g," / "), 10, "F1", ML+12, 14, usable-12);
       const wct=state.water[ds]||0;
       if(wct) line("Acqua: "+(wct*0.2).toFixed(1).replace(".",",")+" L", 9, "F1", ML+12, 14);
     }
@@ -1112,11 +1120,11 @@ function buildWeekPdfString(){
   if(y-70<MB) startPage(); else gap(4);
   const counts=state.limits[mon]||{}, sc=weekScore(mon);
   const used=LIMITI.filter(it=>(counts[it.id]||0)>0).map(it=>it.label+" "+counts[it.id]+"/"+it.max);
-  const gcw=(state.goals[mon]||{}).camminata||0;
+  let actDays=0; for(let i=0;i<7;i++){ if(state.activity[shiftDate(mon,i)]) actDays++; }
   line("Riepilogo settimana", 12, "F2", ML, 17);
   para("Pagella: "+(sc.score!==null? sc.score+"/10 ("+sc.ok+" in linea, "+sc.no+" fuori piano su "+sc.rated+" valutati)" : "nessun pasto valutato"), 10, "F1", ML+12, 14, usable-12);
   para("Alimenti a frequenza limitata usati: "+(used.length?used.join("; "):"nessuno"), 10, "F1", ML+12, 14, usable-12);
-  para("Camminate: "+gcw+"/3", 10, "F1", ML+12, 14, usable-12);
+  para("Giorni con attività fisica: "+actDays+" su 7", 10, "F1", ML+12, 14, usable-12);
 
   // ---- assemblaggio oggetti PDF ----
   const N=pages.length, contentStart=5, pageStart=5+N;
@@ -1144,19 +1152,38 @@ function buildWeekPdfString(){
   pdf+="trailer\n<< /Size "+(maxNum+1)+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF";
   return {pdf, mon};
 }
-function downloadWeekPdf(){
-  flushMealInputs(); save();
+function buildWeekPdfBlob(){
+  flushMealInputs(); flushActivity(); save();
   const {pdf, mon}=buildWeekPdfString();
   const bytes=new Uint8Array(pdf.length);
   for(let i=0;i<pdf.length;i++) bytes[i]=pdf.charCodeAt(i)&0xff;
-  const blob=new Blob([bytes],{type:"application/pdf"});
+  return {blob:new Blob([bytes],{type:"application/pdf"}), name:"riepilogo-settimana-"+mon+".pdf"};
+}
+function triggerDownload(blob, name){
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
-  a.href=url; a.download="riepilogo-settimana-"+mon+".pdf";
+  a.href=url; a.download=name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 4000);
 }
+function downloadWeekPdf(){
+  const {blob, name}=buildWeekPdfBlob();
+  triggerDownload(blob, name);
+}
+async function shareWeekPdf(){
+  const {blob, name}=buildWeekPdfBlob();
+  const file=new File([blob], name, {type:"application/pdf"});
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file], title:"Riepilogo settimanale piano 16:8"});
+    }catch(e){ /* condivisione annullata dall'utente: nessun errore da mostrare */ }
+  } else {
+    alert("Questo browser non supporta la condivisione diretta dei file. Scarico il PDF: potrai caricarlo su Drive manualmente.");
+    triggerDownload(blob, name);
+  }
+}
 document.getElementById("valutaBtn").addEventListener("click", downloadWeekPdf);
+document.getElementById("shareBtn").addEventListener("click", shareWeekPdf);
 
 /* ================= NAVIGAZIONE ================= */
 document.querySelectorAll("nav button").forEach(b=>{
@@ -1169,7 +1196,7 @@ document.querySelectorAll("nav button").forEach(b=>{
 
 /* ================= AVVIO ================= */
 function renderAll(){
-  renderWeekStrip(); renderMeals(); renderWater(); renderLimitDetect();
+  renderWeekStrip(); renderMeals(); renderWater(); renderActivity(); renderLimitDetect();
   renderScore(); renderLimits(); renderPlanRef(); renderMeasures();
 }
 diaryDate.value = todayISO();
