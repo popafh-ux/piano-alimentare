@@ -161,6 +161,14 @@ textarea.meal-input{resize:none; min-height:54px; overflow:hidden; line-height:1
 }
 .rate-btn.ok.active{background:var(--green); border-color:var(--green); color:#fff;}
 .rate-btn.no.active{background:var(--red); border-color:var(--red); color:#fff;}
+.flag-row{display:flex; align-items:center; gap:8px; margin:2px 0 8px;}
+.flag-btn{
+  border:1.5px solid var(--line); background:#FDFDFB; color:var(--muted);
+  border-radius:999px; padding:5px 14px; font-size:.78rem; font-weight:800; letter-spacing:.4px; cursor:pointer;
+}
+.flag-btn.active{background:var(--amber); border-color:var(--amber); color:#fff;}
+.flag-note{font-size:.78rem;}
+textarea.meal-input:disabled{background:var(--paper); color:var(--muted); opacity:.75; border-style:dashed;}
 .meal-slot.rated-ok textarea{background:#E7F3DC; border-color:var(--leaf);}
 .meal-slot.rated-no textarea{background:#FAECE7; border-color:#DFA99C;}
 
@@ -301,8 +309,8 @@ nav button.active{color:var(--green-deep); border-top-color:var(--green);}
   </div>
 
   <div class="card">
-    <div class="meal-slot-head" style="margin-bottom:6px"><h2 style="margin:0">Attività fisica</h2><span class="save-flash" id="flash-activity">✓ salvato</span></div>
-    <div class="plan-hint">Scrivi liberamente il movimento fatto in questo giorno: comparirà nel riepilogo PDF della settimana.</div>
+    <div class="meal-slot-head" style="margin-bottom:6px"><h2 style="margin:0">Attività fisica</h2><button type="button" class="flag-btn" id="activityNoBtn" aria-pressed="false">NO</button><span class="save-flash" id="flash-activity">✓ salvato</span></div>
+    <div class="plan-hint" id="activityHint">Scrivi liberamente il movimento fatto in questo giorno: comparirà nel riepilogo PDF della settimana. Tocca «NO» se non hai fatto attività: nel PDF comparirà «niente».</div>
     <textarea class="meal-input" id="activityInput" rows="2" placeholder="Es. camminata veloce 30 min, tapis roulant, cyclette, giardinaggio…"></textarea>
   </div>
 
@@ -479,16 +487,23 @@ function load(){
       if(!s.aiNotes) s.aiNotes = {};
       if(!s.limitLinks) s.limitLinks = {};
       if(!s.activity) s.activity = {};
+      if(!s.dayFlags) s.dayFlags = {};
       return s;
     }
   }catch(e){}
   return {
     settings:{altezza:1.68},
-    meals:{}, mealOk:{}, aiNotes:{}, limitLinks:{}, foodLog:{}, water:{}, limits:{}, goals:{}, activity:{},
+    meals:{}, mealOk:{}, aiNotes:{}, limitLinks:{}, foodLog:{}, water:{}, limits:{}, goals:{}, activity:{}, dayFlags:{},
     measures:[{date:"2026-07-09", peso:96.1, cv:109.5, co:123, cf:115, cc:40}]
   };
 }
 function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+function dayFlagsOf(ds){ return state.dayFlags[ds]||{}; }
+function toggleDayFlag(ds, key){
+  const f = state.dayFlags[ds] = state.dayFlags[ds]||{};
+  if(f[key]) delete f[key]; else f[key] = true;
+  if(!Object.keys(f).length) delete state.dayFlags[ds];
+}
 
 /* ================= UTILITÀ DATE ================= */
 function pad(n){return String(n).padStart(2,"0");}
@@ -621,14 +636,17 @@ document.getElementById("fastCard").addEventListener("click", ev=>{
 const diaryDate = document.getElementById("diaryDate");
 const DAY_SHORT = ["Dom","Lun","Mar","Mer","Gio","Ven","Sab"];
 const SLOTS = [
-  {id:"pranzo",   nome:"Pranzo",   when:"14:00–15:30", rate:true,  hint:d=>PIANO_GIORNI[d].pranzo+" — oppure pasto sostitutivo (whey/barretta)."},
-  {id:"spuntino", nome:"Spuntino", when:"17:00–19:00", rate:true,  hint:d=>"Uno dalla lista spuntini (vedi «Piano»). Obbligatorio se a pranzo hai usato il sostitutivo."},
+  {id:"pranzo",   nome:"Pranzo",   when:"14:00–15:30", rate:true,  hint:d=>PIANO_GIORNI[d].pranzo+" — oppure pasto sostitutivo (whey/barretta).",
+   flagKey:"pranzoProt", flagLabel:"PROTEINE", flagMsg:"Pasto sostitutivo proteico — nel PDF comparirà «PASTO SOSTITUTIVO»"},
+  {id:"spuntino", nome:"Spuntino", when:"17:00–19:00", rate:true,  hint:d=>"Uno dalla lista spuntini (vedi «Piano»). Obbligatorio se a pranzo hai usato il sostitutivo.",
+   flagKey:"spuntinoNo", flagLabel:"NO", flagMsg:"Spuntino saltato — nel PDF comparirà «niente»"},
   {id:"cena",     nome:"Cena",     when:"20:30–21:30", rate:true,  hint:d=>PIANO_GIORNI[d].cena},
   {id:"altro",    nome:"Note / fuori pasto", when:"", rate:false, hint:d=>"Extra, sgarri, com'è andato il digiuno…"}
 ];
 function dayHasText(dateStr){
   const m = state.meals[dateStr];
-  return !!(m && Object.values(m).some(v=>v && v.trim())) || !!state.activity[dateStr];
+  return !!(m && Object.values(m).some(v=>v && v.trim())) || !!state.activity[dateStr] ||
+         !!(state.dayFlags[dateStr] && Object.keys(state.dayFlags[dateStr]).length);
 }
 function shiftDate(dateStr, days){
   const d = new Date(dateStr+"T12:00:00");
@@ -656,18 +674,22 @@ function renderMeals(){
   const saved = state.meals[ds]||{};
   const ratings = state.mealOk[ds]||{};
   const oggi = ds===todayISO() ? " · oggi" : "";
+  const flags = dayFlagsOf(ds);
   document.getElementById("mealsCard").innerHTML =
     '<div class="eyebrow">Diario dei pasti</div>'+
     '<h2>'+PIANO_GIORNI[dow].nome+" "+fmtShort(ds)+oggi+'</h2>'+
     SLOTS.map(s=>{
       const v = ratings[s.id];
       const cls = v===1 ? " rated-ok" : (v===0 ? " rated-no" : "");
+      const flagOn = !!(s.flagKey && flags[s.flagKey]);
       return '<div class="meal-slot'+cls+'">'+
         '<div class="meal-slot-head"><h3>'+s.nome+'</h3>'+
         (s.when?'<span class="when">'+s.when+'</span>':"")+
         '<span class="save-flash" id="flash-'+s.id+'">✓ salvato</span></div>'+
+        (s.flagKey?'<div class="flag-row"><button type="button" class="flag-btn'+(flagOn?" active":"")+'" data-flag="'+s.flagKey+'" aria-pressed="'+flagOn+'">'+s.flagLabel+'</button>'+
+          (flagOn?'<span class="muted flag-note">'+s.flagMsg+'</span>':"")+'</div>':"")+
         '<div class="plan-hint">'+s.hint(dow)+'</div>'+
-        '<textarea class="meal-input" data-slot="'+s.id+'" rows="2" placeholder="Scrivi cosa hai mangiato o cosa mangerai, con le grammature…">'+esc(saved[s.id]||"")+'</textarea>'+
+        '<textarea class="meal-input" data-slot="'+s.id+'" rows="2" placeholder="Scrivi cosa hai mangiato o cosa mangerai, con le grammature…"'+(flagOn?" disabled":"")+'>'+esc(saved[s.id]||"")+'</textarea>'+
         (s.rate ? '<div class="rate-row">'+
           '<button type="button" class="rate-btn ok'+(v===1?" active":"")+'" data-rate="1" data-slot="'+s.id+'">✓ In linea col piano</button>'+
           '<button type="button" class="rate-btn no'+(v===0?" active":"")+'" data-rate="0" data-slot="'+s.id+'">✗ Fuori piano</button>'+
@@ -706,8 +728,8 @@ document.getElementById("mealsCard").addEventListener("input", ev=>{
 
 /* --- Rilevamento alimenti limitati dal testo del diario --- */
 function detectLimits(dateStr){
-  const m = state.meals[dateStr]||{};
-  const text = [m.pranzo, m.spuntino, m.cena, m.altro].filter(Boolean).join(" \n ").toLowerCase();
+  const m = state.meals[dateStr]||{}, f = dayFlagsOf(dateStr);
+  const text = [f.pranzoProt?null:m.pranzo, f.spuntinoNo?null:m.spuntino, m.cena, m.altro].filter(Boolean).join(" \n ").toLowerCase();
   if(!text.trim()) return [];
   return LIMITI.filter(it => it.kw && it.kw.some(k => text.includes(k))).map(it=>it.id);
 }
@@ -755,11 +777,20 @@ document.getElementById("limitDetectCard").addEventListener("click", ev=>{
   }
 });
 document.getElementById("mealsCard").addEventListener("click", ev=>{
+  const fb = ev.target.closest("[data-flag]");
+  if(fb){
+    flushMealInputs();
+    toggleDayFlag(diaryDate.value, fb.dataset.flag);
+    save(); renderMeals(); renderWeekStrip(); renderLimitDetect();
+    return;
+  }
   const b = ev.target.closest("[data-rate]");
   if(!b) return;
   const ds = diaryDate.value, slot = b.dataset.slot, val = +b.dataset.rate;
   flushMealInputs();
-  if(!(state.meals[ds] && state.meals[ds][slot])){
+  const fl = dayFlagsOf(ds);
+  const flagged = (slot==="pranzo" && fl.pranzoProt) || (slot==="spuntino" && fl.spuntinoNo);
+  if(!(state.meals[ds] && state.meals[ds][slot]) && !flagged){
     alert("Scrivi prima cosa hai mangiato in questo pasto, poi valutalo.");
     save(); renderMeals(); return;
   }
@@ -785,8 +816,14 @@ document.getElementById("weekNext").addEventListener("click", ()=>{
 });
 /* --- Attività fisica del giorno --- */
 const activityInput = document.getElementById("activityInput");
+const activityNoBtn = document.getElementById("activityNoBtn");
 function renderActivity(){
-  activityInput.value = state.activity[diaryDate.value]||"";
+  const ds = diaryDate.value;
+  const no = !!dayFlagsOf(ds).attivitaNo;
+  activityInput.value = state.activity[ds]||"";
+  activityInput.disabled = no;
+  activityNoBtn.classList.toggle("active", no);
+  activityNoBtn.setAttribute("aria-pressed", String(no));
   autogrow(activityInput);
 }
 function flushActivity(){
@@ -794,6 +831,11 @@ function flushActivity(){
   const ds = diaryDate.value, val = activityInput.value.trim();
   if(val) state.activity[ds] = val; else delete state.activity[ds];
 }
+activityNoBtn.addEventListener("click", ()=>{
+  flushActivity();
+  toggleDayFlag(diaryDate.value, "attivitaNo");
+  save(); renderActivity(); renderWeekStrip();
+});
 activityInput.addEventListener("input", ()=>{
   autogrow(activityInput);
   const ds = diaryDate.value, val = activityInput.value;
@@ -1096,10 +1138,12 @@ function buildWeekPdfString(){
     if(ds>today){
       line("(giorno non ancora arrivato)", 10, "F1", ML+12, 15);
     } else {
-      const meals=state.meals[ds]||{}, ratings=state.mealOk[ds]||{};
+      const meals=state.meals[ds]||{}, ratings=state.mealOk[ds]||{}, flags=state.dayFlags[ds]||{};
       let any=false;
       ["pranzo","spuntino","cena","altro"].forEach(slot=>{
-        const txt=meals[slot];
+        let txt=meals[slot];
+        if(slot==="pranzo" && flags.pranzoProt) txt="PASTO SOSTITUTIVO";
+        if(slot==="spuntino" && flags.spuntinoNo) txt="niente";
         if(!txt) return;
         any=true;
         let sfx="";
@@ -1109,7 +1153,7 @@ function buildWeekPdfString(){
         para(SLOT_NAMES[slot]+": "+clean+sfx, 10, "F1", ML+12, 14, usable-12);
       });
       if(!any) line("nessun pasto registrato", 10, "F1", ML+12, 15);
-      const act=state.activity[ds];
+      const act = flags.attivitaNo ? "niente" : state.activity[ds];
       if(act) para("Attività fisica: "+String(act).replace(/\s*\n\s*/g," / "), 10, "F1", ML+12, 14, usable-12);
       const wct=state.water[ds]||0;
       if(wct) line("Acqua: "+(wct*0.2).toFixed(1).replace(".",",")+" L", 9, "F1", ML+12, 14);
@@ -1120,7 +1164,7 @@ function buildWeekPdfString(){
   if(y-70<MB) startPage(); else gap(4);
   const counts=state.limits[mon]||{}, sc=weekScore(mon);
   const used=LIMITI.filter(it=>(counts[it.id]||0)>0).map(it=>it.label+" "+counts[it.id]+"/"+it.max);
-  let actDays=0; for(let i=0;i<7;i++){ if(state.activity[shiftDate(mon,i)]) actDays++; }
+  let actDays=0; for(let i=0;i<7;i++){ const d2=shiftDate(mon,i); if(!(state.dayFlags[d2]||{}).attivitaNo && state.activity[d2]) actDays++; }
   line("Riepilogo settimana", 12, "F2", ML, 17);
   para("Pagella: "+(sc.score!==null? sc.score+"/10 ("+sc.ok+" in linea, "+sc.no+" fuori piano su "+sc.rated+" valutati)" : "nessun pasto valutato"), 10, "F1", ML+12, 14, usable-12);
   para("Alimenti a frequenza limitata usati: "+(used.length?used.join("; "):"nessuno"), 10, "F1", ML+12, 14, usable-12);
